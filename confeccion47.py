@@ -25,7 +25,7 @@ from docNotaInventario a
 inner join docNotaInventarioItem b on a.IdDocumento_NotaInventario = b.IdDocumento_NotaInventario
 inner join docOrdenProduccion c on a.IdDocumento_OrdenProduccion = c.IdDocumento_OrdenProduccion
 inner join maeAnexoProveedor d on a.IdmaeAnexo = d.IdmaeAnexo_Proveedor
-where a.IdmaeAnexo IN (248,5526, 321, 5512)
+where a.IdmaeAnexo IN (248,5526, 321, 5512,60,64)
     and a.dtFechaRegistro > '01-10-2024'
     and a.IdtdDocumentoForm = 130
     and a.bAnulado= 0
