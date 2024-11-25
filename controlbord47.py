@@ -34,7 +34,7 @@ def run_query_enviadas():
     INNER JOIN docNotaInventario a ON a.IdDocumento_NotaInventario = b.IdDocumento_NotaInventario
     INNER JOIN docOrdenProduccion e ON a.IdDocumento_OrdenProduccion = e.IdDocumento_OrdenProduccion
     INNER JOIN maeAnexoProveedor f ON f.IdmaeAnexo_Proveedor = d.IdmaeAnexo_Destino
-    WHERE d.IdmaeAnexo_Destino IN (6536, 4251, 6546)
+    WHERE d.IdmaeAnexo_Destino IN (6536, 4251, 6546, 6626)
         AND b.dCantidadSal > 0
         AND c.IdtdDocumentoForm_NotaInventario = 130
         AND d.dtFechaEmision > '01-09-2024'
