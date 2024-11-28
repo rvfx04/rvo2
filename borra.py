@@ -6,6 +6,87 @@ from datetime import datetime
 
 # [Previous functions remain the same: connect_to_db(), run_query_enviadas(), run_query_regresadas(), safe_date_format()]
 
+# Configuración de la página
+st.set_page_config(page_title="Control de bordados 47")
+
+# Función para conectar a la base de datos
+def connect_to_db():
+    connection = pyodbc.connect(
+        "driver={odbc driver 17 for sql server};"
+        "server=" + st.secrets["server"] + ";"
+        "database=" + st.secrets["database"] + ";"
+        "uid=" + st.secrets["username"] + ";"
+        "pwd=" + st.secrets["password"] + ";"
+    )
+    return connection
+
+# Función para ejecutar la consulta de unidades enviadas
+def run_query_enviadas():
+    conn = connect_to_db()
+    query = """
+    SELECT 
+        e.CoddocOrdenProduccion AS OP,
+        MIN(d.dtFechaEmision) AS FECHA_ENVIO,
+        MIN(f.NommaeAnexoProveedor) AS PROVEEDOR,
+        SUM(b.dCantidadSal) AS UNIDADES_ENVIADAS, b.IdDocumento_NotaInventario
+    FROM docNotaInventarioItem b
+    INNER JOIN docGuiaRemisionDetalle c ON b.IdDocumento_NotaInventario = c.IdDocumento_NotaInventario
+    INNER JOIN docGuiaRemision d ON c.IdDocumento_GuiaRemision = d.IdDocumento_GuiaRemision
+    INNER JOIN docNotaInventario a ON a.IdDocumento_NotaInventario = b.IdDocumento_NotaInventario
+    INNER JOIN docOrdenProduccion e ON a.IdDocumento_OrdenProduccion = e.IdDocumento_OrdenProduccion
+    INNER JOIN maeAnexoProveedor f ON f.IdmaeAnexo_Proveedor = d.IdmaeAnexo_Destino
+    WHERE d.IdmaeAnexo_Destino IN (6536, 4251, 6546, 6626)
+        AND b.dCantidadSal > 0
+        AND c.IdtdDocumentoForm_NotaInventario = 130
+        AND d.dtFechaEmision > '01-09-2024'
+        AND a.bAnulado = 0
+        AND d.bAnulado = 0 and NOT  a.IdDocumento_NotaInventario in (489353,493532,486774,493055,492058)
+    GROUP BY e.CoddocOrdenProduccion, b.IdDocumento_NotaInventario
+    """
+    df = pd.read_sql(query, conn)
+    conn.close()
+    return df
+
+# Función para ejecutar la consulta de unidades regresadas
+def run_query_regresadas():
+    conn = connect_to_db()
+    query = """
+    SELECT c.CoddocOrdenProduccion AS OP, MIN(A.dtFechaRegistro) as FECHA_REGRESO,
+        MIN(d.NommaeAnexoProveedor) AS PROVEEDOR, SUM(b.dCantidadIng) AS UNIDADES_REGRESADAS, a.IdDocumento_NotaInventario
+    FROM docNotaInventario a 
+    INNER JOIN docNotaInventarioItem b ON a.IdDocumento_NotaInventario = b.IdDocumento_NotaInventario
+    INNER JOIN docOrdenProduccion c ON a.IdDocumento_OrdenProduccion = c.IdDocumento_OrdenProduccion
+    INNER JOIN maeAnexoProveedor d ON a.IdmaeAnexo = d.IdmaeAnexo_Proveedor
+    WHERE a.IdmaeAnexo IN (6536,4251, 6546)
+        AND a.dtFechaRegistro > '01-09-2024'
+        AND a.IdtdDocumentoForm = 131
+        AND a.bAnulado = 0
+        AND a.IdmaeSunatCTipoComprobantePago = 10 and NOT  a.IdDocumento_NotaInventario in (489353,493532,486774,493055,492058)
+    GROUP BY c.CoddocOrdenProduccion , a.IdDocumento_NotaInventario
+    """
+    df = pd.read_sql(query, conn)
+    conn.close()
+    return df
+
+# Función para formatear fechas de manera segura
+def safe_date_format(date):
+    if pd.isnull(date):
+        return ''
+    if isinstance(date, (int, float)):
+        try:
+            return datetime.fromtimestamp(date).strftime('%Y-%m-%d')
+        except:
+            return str(date)
+    if isinstance(date, str):
+        try:
+            return datetime.strptime(date, '%Y-%m-%d').strftime('%Y-%m-%d')
+        except:
+            return date
+    if isinstance(date, datetime):
+        return date.strftime('%Y-%m-%d')
+    return str(date)
+
+
 # Título de la aplicación
 st.title("Control de bordados 47")
 
