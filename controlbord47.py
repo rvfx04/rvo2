@@ -5,7 +5,6 @@ import pyodbc
 from datetime import datetime
 
 # Configuración de la página
-#st.set_page_config(page_title="Control de bordados 47", layout="wide")
 st.set_page_config(page_title="Control de bordados 47")
 
 # Función para conectar a la base de datos
@@ -97,9 +96,6 @@ try:
     df_enviadas['FECHA_ENVIO'] = pd.to_datetime(df_enviadas['FECHA_ENVIO'], errors='coerce')
     df_regresadas['FECHA_REGRESO'] = pd.to_datetime(df_regresadas['FECHA_REGRESO'], errors='coerce')
 
-    # Combinar datos detallados
-    #df_detallado = pd.merge(df_enviadas, df_regresadas, on=['OP', 'PROVEEDOR'], how='outer').fillna(0)
-    
     df_detallado = pd.merge(df_enviadas, df_regresadas, on=['OP', 'PROVEEDOR'], how='outer')
 
     # Llenar NaN con 0 solo para las columnas numéricas
@@ -107,8 +103,9 @@ try:
     df_detallado['UNIDADES_REGRESADAS'] = df_detallado['UNIDADES_REGRESADAS'].fillna(0)
 
     df_detallado['SALDO'] = df_detallado['UNIDADES_ENVIADAS'] - df_detallado['UNIDADES_REGRESADAS']
-
     
+    # Agregar columna de PEDIDO
+    df_detallado['PEDIDO'] = df_detallado['OP'].str[:4]
     
     # Ordenar por OP
     df_detallado = df_detallado.sort_values('OP')
@@ -126,20 +123,39 @@ try:
 
     # Tabla de resumen por proveedor
     st.subheader("Resumen por Proveedor")
-    df_resumen = df_detallado.groupby('PROVEEDOR').agg({
+    df_resumen_proveedor = df_detallado.groupby('PROVEEDOR').agg({
         'UNIDADES_ENVIADAS': 'sum',
         'UNIDADES_REGRESADAS': 'sum',
         'SALDO': 'sum'
     }).reset_index()
-    st.dataframe(df_resumen.style.format({
+    st.dataframe(df_resumen_proveedor.style.format({
         'UNIDADES_ENVIADAS': '{:,.0f}',
         'UNIDADES_REGRESADAS': '{:,.0f}',
         'SALDO': '{:,.0f}'
     }))
 
-    # Gráfico de barras apiladas
+    # Nueva sección: Resumen por Pedido
+    st.subheader("Resumen por Pedido")
+    df_resumen_pedido = df_detallado.groupby('PEDIDO').agg({
+        'UNIDADES_ENVIADAS': 'sum',
+        'UNIDADES_REGRESADAS': 'sum',
+        'SALDO': 'sum',
+        'OP': 'count'  # Contar número de OPs por pedido
+    }).reset_index()
+    
+    # Renombrar columna de conteo de OPs
+    df_resumen_pedido = df_resumen_pedido.rename(columns={'OP': 'NUM_OPS'})
+    
+    st.dataframe(df_resumen_pedido.style.format({
+        'UNIDADES_ENVIADAS': '{:,.0f}',
+        'UNIDADES_REGRESADAS': '{:,.0f}',
+        'SALDO': '{:,.0f}',
+        'NUM_OPS': '{:,.0f}'
+    }))
+
+    # Gráfico de barras apiladas por proveedor
     st.subheader("Distribución de Unid. por Proveedor")
-    fig = px.bar(df_resumen, x='PROVEEDOR', y=['UNIDADES_REGRESADAS', 'SALDO'],
+    fig = px.bar(df_resumen_proveedor, x='PROVEEDOR', y=['UNIDADES_REGRESADAS', 'SALDO'],
                  title="Retorno vs Saldo",
                  labels={'value': 'Unidades', 'variable': 'Tipo'},
                  color_discrete_map={'UNIDADES_REGRESADAS': 'green', 'SALDO': 'blue'})
@@ -150,12 +166,10 @@ try:
     
     # Aplicar el formato personalizado
     df_detallado['FECHA_ENVIO_FORMATTED'] = df_detallado['FECHA_ENVIO'].apply(safe_date_format)
-    #df_detallado['FECHA_REGRESO_FORMATTED'] = df_detallado['FECHA_REGRESO'].apply(safe_date_format)
-
     df_detallado['FECHA_REGRESO_FORMATTED'] = df_detallado['FECHA_REGRESO'].apply(lambda x: safe_date_format(x) if pd.notnull(x) else '')
 
-    # Seleccionar solo las columnas que queremos mostrar
-    columns_to_display = ['OP', 'PROVEEDOR', 'FECHA_ENVIO_FORMATTED', 'FECHA_REGRESO_FORMATTED', 
+    # Seleccionar columnas para mostrar
+    columns_to_display = ['OP', 'PEDIDO', 'PROVEEDOR', 'FECHA_ENVIO_FORMATTED', 'FECHA_REGRESO_FORMATTED', 
                           'UNIDADES_ENVIADAS', 'UNIDADES_REGRESADAS', 'SALDO']
     df_display = df_detallado[columns_to_display]
 
@@ -175,14 +189,6 @@ try:
         'F_ENVIO': '{}',
         'F_REGRESO': '{}'
     }))
-
-    #st.dataframe(df_display.style.format({
-        #'UNIDADES_ENVIADAS': '{:,.0f}',
-        #'UNIDADES_REGRESADAS': '{:,.0f}',
-        #'SALDO': '{:,.0f}',
-        #'FECHA_ENVIO_FORMATTED': '{}',
-        #'FECHA_REGRESO_FORMATTED': '{}'
-    #}))
 
 except Exception as e:
     st.error(f"Ocurrió un error al cargar los datos: {str(e)}")
