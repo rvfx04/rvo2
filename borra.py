@@ -127,6 +127,32 @@ try:
     col2.metric("Total Retorno", f"{total_regresadas:,.0f}")
     col3.metric("Saldo Total", f"{saldo_total:,.0f}")
 
+    # Add this after the total statistics section (after the col3.metric() lines)
+    # Summary by Provider
+    st.subheader("Resumen por Proveedor")
+    
+    # Calculate summary statistics by provider
+    proveedor_summary = df_detallado.groupby('PROVEEDOR').agg({
+        'UNIDADES_ENVIADAS': 'sum',
+        'UNIDADES_REGRESADAS': 'sum',
+        'SALDO': 'sum',
+        'OP': 'count'
+    }).reset_index()
+    
+    proveedor_summary = proveedor_summary.rename(columns={
+        'UNIDADES_ENVIADAS': 'U_ENV',
+        'UNIDADES_REGRESADAS': 'U_REG',
+        'OP': 'CANT_OPs'
+    })
+    
+    # Style the summary dataframe
+    st.dataframe(proveedor_summary.style.format({
+        'U_ENV': '{:,.0f}',
+        'U_REG': '{:,.0f}',
+        'SALDO': '{:,.0f}',
+        'CANT_OPs': '{:,.0f}'
+    }))
+
     # [Previous sections remain the same]
 
     # Mostrar datos detallados combinados
