@@ -293,6 +293,7 @@ if st.button("Ejecutar Consulta"):
                 finish_telaprob = datetime(2025,1,3)
                 finish_corte = datetime(2025,1,15)
                 finish_costura = datetime(2025,2,20)
+		    
                 # Crear DataFrame para el gráfico de Gantt
                 df_gantt = pd.DataFrame({
                     'Proceso': ['ARMADO', 'TEÑIDO', 'TELA_APROB', 'CORTE', 'COSTURA'],
