@@ -284,7 +284,7 @@ if st.button("Ejecutar Consulta"):
 		#start_armado = datetime(2024,6,24)   
                 start_armado = datetime(2024,12,4) 
 		
-                start_tenido = datatime(2024,12,12)
+                start_tenido = datetime(2024,12,12)
                 start_telaprob = f_emision + timedelta(days=3 * FACTOR * dias)
                 start_corte = f_emision + timedelta(days=4 * FACTOR * dias)
                 start_costura = f_emision + timedelta(days=6 * FACTOR * dias)
