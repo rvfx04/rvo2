@@ -20,4 +20,3 @@ webdriver-manager
 PyPDF2
 Pillow
 PyMuPDF
-psycopg2
