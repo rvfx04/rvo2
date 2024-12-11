@@ -250,13 +250,6 @@ WHERE gg.PEDIDO = ?"""
     conn.close()
     return df
 
-# Parámetros constantes
-FACTOR = 0.06
-DARM = 0.2
-DTENID = 0.25
-DTELAPROB = 0.27
-DCORTADO = 0.25
-DCOSIDO = 0.57
 
 # Interfaz de usuario de Streamlit
 st.title("Progreso del Pedido")
@@ -283,7 +276,6 @@ if st.button("Ejecutar Consulta"):
                 # Cálculo de las fechas de inicio y fin
 		 
                 start_armado = datetime(2024,12,4) 
-		
                 start_tenido = datetime(2024,12,12)
                 start_telaprob = datetime(2024,12,20)
                 start_corte = datetime(2024,12,28)
