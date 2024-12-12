@@ -271,7 +271,17 @@ def run_postgres_query(pedido):
     # Modify this query to get the specific dates and information you want
     query = '''
     SELECT 
-        *
+        "IdDocumento_OrdenVenta" as pedido,
+        "start_armado",
+        "start_tenido",
+        "start_telaprob",
+        "start_corte",
+        "start_costura",
+        "finish_armado",
+        "finish_tenido",
+        "finish_telaprob",
+        "finish_corte",
+        "finish_costura"
     FROM "docOrdenVenta"
     WHERE "IdDocumento_OrdenVenta" = %s
     '''
