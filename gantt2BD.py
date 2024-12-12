@@ -294,16 +294,16 @@ if st.button("Ejecutar Consulta"):
     if pedido:
         try:
             # Execute SQL Server query
-            df_sqlserver = run_query(pedido)
+            df = run_query(pedido)
             
             # Execute PostgreSQL query
             df_postgres = run_postgres_query(pedido)
             
-            if df_sqlserver.empty:
+            if df.empty:
                 st.warning("No se encontraron datos para este pedido en SQL Server.")
             else:
                 # Display existing SQL Server data
-                st.dataframe(df_sqlserver)
+                st.dataframe(df)
                 
                 # Add a subheader and display PostgreSQL data
                 st.subheader("Información Adicional del Pedido")
