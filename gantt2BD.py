@@ -326,22 +326,22 @@ if st.button("Ejecutar Consulta"):
                 f_emision = pd.to_datetime(df['F_EMISION'].iloc[0])
                 dias = df['DIAS'].iloc[0]
 
-                start_armado = pd.to_datetime(df_postgres_dates['star_armado'].iloc[0])
-		start_tenido = pd.to_datetime(df_postgres_dates['star_tenido'].iloc[0])
-				start_telaprob = pd.to_datetime(df_postgres_dates['star_telaprob'].iloc[0])
-				start_corte = pd.to_datetime(df_postgres_dates['star_corte'].iloc[0])
-				start_costura = pd.to_datetime(df_postgres_dates['star_costura'].iloc[0])
-
-				finish_armado = pd.to_datetime(df_postgres_dates['finish_armado'].iloc[0])
-
-				
-    		
-    		finish_tenido = pd.to_datetime(df_postgres_dates['finish_tenido'].iloc[0])
-    		finish_telaprob = pd.to_datetime(df_postgres_dates['finish_telaprob'].iloc[0])
-    		finish_corte = pd.to_datetime(df_postgres_dates['finish_corte'].iloc[0])
-    		finish_costura = pd.to_datetime(df_postgres_dates['finish_costura'].iloc[0])
+                # Cálculo de las fechas de inicio y fin
+		 
+                start_armado = datetime(2024,12,4) 
+                start_tenido = datetime(2024,12,12)
+                start_telaprob = datetime(2024,12,20)
+                start_corte = datetime(2024,12,28)
+                start_costura = datetime(2025,1,8)
+                finish_armado = datetime(2024,12,19)
+                finish_tenido = datetime(2024,12,27)
+                finish_telaprob = datetime(2025,1,3)
+                finish_corte = datetime(2025,1,15)
+                finish_costura = datetime(2025,2,20)
 		    
-                # Crear DataFrame para el gráfico de Gantt
+
+                 
+				# Crear DataFrame para el gráfico de Gantt
                 df_gantt = pd.DataFrame({
                     'Proceso': ['ARMADO', 'TEÑIDO', 'TELA_APROB', 'CORTE', 'COSTURA'],
                     'Start': [start_armado, start_tenido, start_telaprob, start_corte, start_costura],
