@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+import psycopg2
 
 st.set_page_config(layout="wide")
 
@@ -17,6 +18,8 @@ def connect_db():
         "pwd=" + st.secrets["password"] + ";"
     )
     return connection
+
+
 
 # Función para ejecutar la consulta SQL
 def run_query(pedido):
