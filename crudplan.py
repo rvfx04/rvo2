@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import psycopg2
 from psycopg2 import sql
+from datetime import datetime
 
 class PostgreSQLApp:
     def __init__(self):
@@ -77,8 +78,8 @@ class PostgreSQLApp:
         try:
             self.execute_query(query, (
                 record_data['IdDocumento_OrdenVenta'],
-                record_data['Fecha_Entrega'],
-                record_data['Fecha_Colocacion'],
+                record_data['Fecha_Entrega'] if record_data['Fecha_Entrega'] else None,
+                record_data['Fecha_Colocacion'] if record_data['Fecha_Colocacion'] else None,
                 record_data['star_armado'],
                 record_data['finish_armado'],
                 record_data['star_tenido'],
@@ -123,8 +124,8 @@ class PostgreSQLApp:
         
         try:
             self.execute_query(query, (
-                record_data['Fecha_Entrega'],
-                record_data['Fecha_Colocacion'],
+                record_data['Fecha_Entrega'] if record_data['Fecha_Entrega'] else None,
+                record_data['Fecha_Colocacion'] if record_data['Fecha_Colocacion'] else None,
                 record_data['star_armado'],
                 record_data['finish_armado'],
                 record_data['star_tenido'],
@@ -185,8 +186,8 @@ def main():
         st.header("Crear Nuevo Registro")
         with st.form("create_record"):
             id_doc = st.text_input("ID Documento")
-            fecha_entrega = st.date_input("Fecha de Entrega")
-            fecha_colocacion = st.date_input("Fecha de Colocación")
+            fecha_entrega = st.date_input("Fecha de Entrega", value=None)
+            fecha_colocacion = st.date_input("Fecha de Colocación", value=None)
             star_armado = st.text_input("Inicio Armado")
             finish_armado = st.text_input("Fin Armado")
             star_tenido = st.text_input("Inicio Teñido")
@@ -230,8 +231,8 @@ def main():
         st.header("Actualizar Registro")
         with st.form("update_record"):
             id_update = st.text_input("ID Documento a Actualizar")
-            fecha_entrega_update = st.date_input("Nueva Fecha de Entrega")
-            fecha_colocacion_update = st.date_input("Nueva Fecha de Colocación")
+            fecha_entrega_update = st.date_input("Nueva Fecha de Entrega", value=None)
+            fecha_colocacion_update = st.date_input("Nueva Fecha de Colocación", value=None)
             star_armado_update = st.text_input("Nuevo Inicio Armado")
             finish_armado_update = st.text_input("Nuevo Fin Armado")
             star_tenido_update = st.text_input("Nuevo Inicio Teñido")
