@@ -80,20 +80,20 @@ class PostgreSQLApp:
                 record_data['IdDocumento_OrdenVenta'],
                 record_data['Fecha_Entrega'] if record_data['Fecha_Entrega'] else None,
                 record_data['Fecha_Colocacion'] if record_data['Fecha_Colocacion'] else None,
-                record_data['star_armado'],
-                record_data['finish_armado'],
-                record_data['star_tenido'],
-                record_data['finish_tenido'],
-                record_data['star_proc_tela'],
-                record_data['finish_proc_tela'],
-                record_data['star_telaprob'],
-                record_data['finish_telaprob'],
-                record_data['star_corte'],
-                record_data['finish_corte'],
-                record_data['star_costura'],
-                record_data['finish_costura'],
-                record_data['star_proc_prenda'],
-                record_data['finish_proc_prenda']
+                record_data['star_armado'] if record_data['star_armado'] else None,
+                record_data['finish_armado'] if record_data['finish_armado'] else None,
+                record_data['star_tenido'] if record_data['star_tenido'] else None,
+                record_data['finish_tenido'] if record_data['finish_tenido'] else None,
+                record_data['star_proc_tela'] if record_data['star_proc_tela'] else None,
+                record_data['finish_proc_tela'] if record_data['finish_proc_tela'] else None,
+                record_data['star_telaprob'] if record_data['star_telaprob'] else None,
+                record_data['finish_telaprob'] if record_data['finish_telaprob'] else None,
+                record_data['star_corte'] if record_data['star_corte'] else None,
+                record_data['finish_corte'] if record_data['finish_corte'] else None,
+                record_data['star_costura'] if record_data['star_costura'] else None,
+                record_data['finish_costura'] if record_data['finish_costura'] else None,
+                record_data['star_proc_prenda'] if record_data['star_proc_prenda'] else None,
+                record_data['finish_proc_prenda'] if record_data['finish_proc_prenda'] else None
             ))
             st.success("Registro creado exitosamente")
         except Exception as e:
@@ -126,20 +126,20 @@ class PostgreSQLApp:
             self.execute_query(query, (
                 record_data['Fecha_Entrega'] if record_data['Fecha_Entrega'] else None,
                 record_data['Fecha_Colocacion'] if record_data['Fecha_Colocacion'] else None,
-                record_data['star_armado'],
-                record_data['finish_armado'],
-                record_data['star_tenido'],
-                record_data['finish_tenido'],
-                record_data['star_proc_tela'],
-                record_data['finish_proc_tela'],
-                record_data['star_telaprob'],
-                record_data['finish_telaprob'],
-                record_data['star_corte'],
-                record_data['finish_corte'],
-                record_data['star_costura'],
-                record_data['finish_costura'],
-                record_data['star_proc_prenda'],
-                record_data['finish_proc_prenda'],
+                record_data['star_armado'] if record_data['star_armado'] else None,
+                record_data['finish_armado'] if record_data['finish_armado'] else None,
+                record_data['star_tenido'] if record_data['star_tenido'] else None,
+                record_data['finish_tenido'] if record_data['finish_tenido'] else None,
+                record_data['star_proc_tela'] if record_data['star_proc_tela'] else None,
+                record_data['finish_proc_tela'] if record_data['finish_proc_tela'] else None,
+                record_data['star_telaprob'] if record_data['star_telaprob'] else None,
+                record_data['finish_telaprob'] if record_data['finish_telaprob'] else None,
+                record_data['star_corte'] if record_data['star_corte'] else None,
+                record_data['finish_corte'] if record_data['finish_corte'] else None,
+                record_data['star_costura'] if record_data['star_costura'] else None,
+                record_data['finish_costura'] if record_data['finish_costura'] else None,
+                record_data['star_proc_prenda'] if record_data['star_proc_prenda'] else None,
+                record_data['finish_proc_prenda'] if record_data['finish_proc_prenda'] else None,
                 record_data['IdDocumento_OrdenVenta']
             ))
             st.success("Registro actualizado exitosamente")
@@ -188,20 +188,20 @@ def main():
             id_doc = st.text_input("ID Documento")
             fecha_entrega = st.date_input("Fecha de Entrega", value=None)
             fecha_colocacion = st.date_input("Fecha de Colocación", value=None)
-            star_armado = st.text_input("Inicio Armado")
-            finish_armado = st.text_input("Fin Armado")
-            star_tenido = st.text_input("Inicio Teñido")
-            finish_tenido = st.text_input("Fin Teñido")
-            star_proc_tela = st.text_input("Inicio Proceso de Tela")
-            finish_proc_tela = st.text_input("Fin Proceso de Tela")
-            star_telaprob = st.text_input("Inicio Prueba de Tela")
-            finish_telaprob = st.text_input("Fin Prueba de Tela")
-            star_corte = st.text_input("Inicio Corte")
-            finish_corte = st.text_input("Fin Corte")
-            star_costura = st.text_input("Inicio Costura")
-            finish_costura = st.text_input("Fin Costura")
-            star_proc_prenda = st.text_input("Inicio Proceso de Prenda")
-            finish_proc_prenda = st.text_input("Fin Proceso de Prenda")
+            star_armado = st.date_input("Fecha de Inicio Armado", value=None)
+            finish_armado = st.date_input("Fecha de Fin Armado", value=None)
+            star_tenido = st.date_input("Fecha de Inicio Teñido", value=None)
+            finish_tenido = st.date_input("Fecha de Fin Teñido", value=None)
+            star_proc_tela = st.date_input("Fecha de Inicio Proceso de Tela", value=None)
+            finish_proc_tela = st.date_input("Fecha de Fin Proceso de Tela", value=None)
+            star_telaprob = st.date_input("Fecha de Inicio Prueba de Tela", value=None)
+            finish_telaprob = st.date_input("Fecha de Fin Prueba de Tela", value=None)
+            star_corte = st.date_input("Fecha de Inicio Corte", value=None)
+            finish_corte = st.date_input("Fecha de Fin Corte", value=None)
+            star_costura = st.date_input("Fecha de Inicio Costura", value=None)
+            finish_costura = st.date_input("Fecha de Fin Costura", value=None)
+            star_proc_prenda = st.date_input("Fecha de Inicio Proceso de Prenda", value=None)
+            finish_proc_prenda = st.date_input("Fecha de Fin Proceso de Prenda", value=None)
             
             submit_create = st.form_submit_button("Crear Registro")
             
@@ -233,20 +233,20 @@ def main():
             id_update = st.text_input("ID Documento a Actualizar")
             fecha_entrega_update = st.date_input("Nueva Fecha de Entrega", value=None)
             fecha_colocacion_update = st.date_input("Nueva Fecha de Colocación", value=None)
-            star_armado_update = st.text_input("Nuevo Inicio Armado")
-            finish_armado_update = st.text_input("Nuevo Fin Armado")
-            star_tenido_update = st.text_input("Nuevo Inicio Teñido")
-            finish_tenido_update = st.text_input("Nuevo Fin Teñido")
-            star_proc_tela_update = st.text_input("Nuevo Inicio Proceso de Tela")
-            finish_proc_tela_update = st.text_input("Nuevo Fin Proceso de Tela")
-            star_telaprob_update = st.text_input("Nuevo Inicio Prueba de Tela")
-            finish_telaprob_update = st.text_input("Nuevo Fin Prueba de Tela")
-            star_corte_update = st.text_input("Nuevo Inicio Corte")
-            finish_corte_update = st.text_input("Nuevo Fin Corte")
-            star_costura_update = st.text_input("Nuevo Inicio Costura")
-            finish_costura_update = st.text_input("Nuevo Fin Costura")
-            star_proc_prenda_update = st.text_input("Nuevo Inicio Proceso de Prenda")
-            finish_proc_prenda_update = st.text_input("Nuevo Fin Proceso de Prenda")
+            star_armado_update = st.date_input("Nueva Fecha de Inicio Armado", value=None)
+            finish_armado_update = st.date_input("Nueva Fecha de Fin Armado", value=None)
+            star_tenido_update = st.date_input("Nueva Fecha de Inicio Teñido", value=None)
+            finish_tenido_update = st.date_input("Nueva Fecha de Fin Teñido", value=None)
+            star_proc_tela_update = st.date_input("Nueva Fecha de Inicio Proceso de Tela", value=None)
+            finish_proc_tela_update = st.date_input("Nueva Fecha de Fin Proceso de Tela", value=None)
+            star_telaprob_update = st.date_input("Nueva Fecha de Inicio Prueba de Tela", value=None)
+            finish_telaprob_update = st.date_input("Nueva Fecha de Fin Prueba de Tela", value=None)
+            star_corte_update = st.date_input("Nueva Fecha de Inicio Corte", value=None)
+            finish_corte_update = st.date_input("Nueva Fecha de Fin Corte", value=None)
+            star_costura_update = st.date_input("Nueva Fecha de Inicio Costura", value=None)
+            finish_costura_update = st.date_input("Nueva Fecha de Fin Costura", value=None)
+            star_proc_prenda_update = st.date_input("Nueva Fecha de Inicio Proceso de Prenda", value=None)
+            finish_proc_prenda_update = st.date_input("Nueva Fecha de Fin Proceso de Prenda", value=None)
             
             submit_update = st.form_submit_button("Actualizar Registro")
             
@@ -280,4 +280,3 @@ def main():
             pg_app.delete_record(delete_id)
 
 if __name__ == "__main__":
-    main()
