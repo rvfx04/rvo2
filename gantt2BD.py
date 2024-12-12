@@ -19,6 +19,17 @@ def connect_db():
     )
     return connection
 
+# New PostgreSQL connection function
+def connect_postgres():
+    connection = psycopg2.connect(
+        host=st.secrets["host"],
+        port=st.secrets["port"],
+        database=st.secrets["database"],
+        user=st.secrets["user"],
+        password=st.secrets["password"]
+    )
+    return connection
+
 
 
 # Función para ejecutar la consulta SQL
@@ -253,6 +264,24 @@ WHERE gg.PEDIDO = ?"""
     conn.close()
     return df
 
+# New PostgreSQL query function
+def run_postgres_query(pedido):
+    conn = connect_postgres()
+    
+    # Modify this query to get the specific dates and information you want
+    query = '''
+    SELECT 
+        *
+    FROM "docOrdenVenta"
+    WHERE "IdDocumento_OrdenVenta" = %s
+    '''
+    
+    df = pd.read_sql(query, conn, params=(pedido,))
+    conn.close()
+    return df
+
+
+
 
 # Interfaz de usuario de Streamlit
 st.title("Progreso del Pedido")
@@ -264,13 +293,24 @@ pedido = st.text_input("Ingresa el número de pedido")
 if st.button("Ejecutar Consulta"):
     if pedido:
         try:
-            # Ejecutar la consulta y obtener los resultados
-            df = run_query(pedido)
-            if df.empty:
-                st.warning("No se encontraron datos para este pedido.")
+            # Execute SQL Server query
+            df_sqlserver = run_query(pedido)
+            
+            # Execute PostgreSQL query
+            df_postgres = run_postgres_query(pedido)
+            
+            if df_sqlserver.empty:
+                st.warning("No se encontraron datos para este pedido en SQL Server.")
             else:
-                # Mostrar los datos en una tabla
-                st.dataframe(df)
+                # Display existing SQL Server data
+                st.dataframe(df_sqlserver)
+                
+                # Add a subheader and display PostgreSQL data
+                st.subheader("Información Adicional del Pedido")
+                if not df_postgres.empty:
+                    st.dataframe(df_postgres, hide_index=True)
+                else:
+                    st.warning("No se encontraron datos adicionales en PostgreSQL.")
 
                 # Procesar los datos para el gráfico de Gantt
                 f_emision = pd.to_datetime(df['F_EMISION'].iloc[0])
