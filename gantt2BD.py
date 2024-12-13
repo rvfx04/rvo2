@@ -406,13 +406,13 @@ if st.button("Ejecutar Consulta"):
                     name="Fecha Colocación"
                 )
 		# Para la fecha de colocación
-fig.add_annotation(
-    x=fecha_colocacion,
-    y=len(df_gantt)/2,
-    text="Fecha Colocación<br>" + fecha_colocacion.strftime('%Y-%m-%d'),
-    showarrow=True,
-    arrowhead=1
-)		
+		fig.add_annotation(
+		    x=fecha_colocacion,
+		    y=len(df_gantt)/2,
+		    text="Fecha Colocación<br>" + fecha_colocacion.strftime('%Y-%m-%d'),
+		    showarrow=True,
+		    arrowhead=1
+		)		
                 fig.add_shape(
                     type="line",
                     x0=fecha_entrega,
