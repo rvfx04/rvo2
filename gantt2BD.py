@@ -332,6 +332,8 @@ if st.button("Ejecutar Consulta"):
                 # Cálculo de las fechas de inicio y fin
 		 
                 start_armado = pd.to_datetime(df_postgres['star_armado'].iloc[0]) 
+		inicial = pd.to_datetime(df_postgres['Fecha_Colocacion'].iloc[0])
+		fin = pd.to_datetime(df_postgres['Fecha_Entrega'].iloc[0])  
                 start_tenido = pd.to_datetime(df_postgres['star_tenido'].iloc[0])
                 start_telaprob = pd.to_datetime(df_postgres['star_telaprob'].iloc[0])
                 start_corte = pd.to_datetime(df_postgres['star_corte'].iloc[0])
@@ -341,8 +343,7 @@ if st.button("Ejecutar Consulta"):
                 finish_telaprob = pd.to_datetime(df_postgres['finish_telaprob'].iloc[0])
                 finish_corte = pd.to_datetime(df_postgres['finish_corte'].iloc[0])
                 finish_costura = pd.to_datetime(df_postgres['finish_costura'].iloc[0])
-		inicial = pd.to_datetime(df_postgres['Fecha_Colocacion'].iloc[0]) 
-                fin = pd.to_datetime(df_postgres['Fecha_Entrega'].iloc[0])    
+		
 
                  
 				# Crear DataFrame para el gráfico de Gantt
