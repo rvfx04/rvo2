@@ -410,7 +410,7 @@ if st.button("Ejecutar Consulta"):
                 fig.add_annotation(
                     x=fecha_colocacion,
                     y=len(df_gantt)/2,
-                    text="Fecha Colocación<br>" + fecha_colocacion.strftime('%Y-%m-%d'),
+                    text="Emision<br>" + fecha_colocacion.strftime('%Y-%m-%d'),
                     showarrow=True,
                     arrowhead=1
                 )        	
