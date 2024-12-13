@@ -272,6 +272,9 @@ def run_postgres_query(pedido):
     query = '''
     SELECT 
         "IdDocumento_OrdenVenta" as pedido,
+	"Fecha_Colocacion",
+	"Fecha_Entrega",
+ 
         "star_armado",
         "star_tenido",
         "star_telaprob",
