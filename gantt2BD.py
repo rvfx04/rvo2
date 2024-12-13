@@ -413,7 +413,7 @@ if st.button("Ejecutar Consulta"):
                 fig.add_annotation(
                     x=fecha_colocacion,
                     y=len(df_gantt)/2,
-                    text="Emision<br>" + fecha_colocacion.strftime('%d-%m'),
+                    text="Emision<br>" + fecha_colocacion.strftime('%b %d'),
                     showarrow=True,
                     arrowhead=1
                 )        	
@@ -430,7 +430,7 @@ if st.button("Ejecutar Consulta"):
                 fig.add_annotation(
                     x=fecha_entrega,
                     y=len(df_gantt)/2,
-                    text="Entrega<br>" + fecha_entrega.strftime('%d-%m'),
+                    text="Entrega<br>" + fecha_entrega.strftime('%b %d'),
                     showarrow=True,
                     arrowhead=1
                 )    
@@ -461,7 +461,7 @@ if st.button("Ejecutar Consulta"):
                 fig.add_annotation(
                     x=inicial,
                     y=len(df_gantt)/3,
-                    text="Inicio<br>" + inicial.strftime('%d-%m'),
+                    text="Inicio<br>" + inicial.strftime('%b %d'),
                     showarrow=True,
                     arrowhead=1
                 )        	
@@ -478,7 +478,7 @@ if st.button("Ejecutar Consulta"):
                 fig.add_annotation(
                     x=fin,
                     y=len(df_gantt)/3,
-                    text="Fin<br>" + fecha_entrega.strftime('%d-%m'),
+                    text="Fin<br>" + fecha_entrega.strftime('%b %d'),
                     showarrow=True,
                     arrowhead=1
                 )
