@@ -410,7 +410,7 @@ if st.button("Ejecutar Consulta"):
                 fig.add_annotation(
                     x=fecha_colocacion,
                     y=len(df_gantt)/2,
-                    text="Emision<br>" + fecha_colocacion.strftime('%d-%mmm'),
+                    text="Emision<br>" + fecha_colocacion.strftime('%d-%m'),
                     showarrow=True,
                     arrowhead=1
                 )        	
@@ -423,6 +423,14 @@ if st.button("Ejecutar Consulta"):
                     line=dict(color="red", width=2, dash="dash"),
                     name="Fecha Entrega"
                 )
+		# Para la fecha de entrega
+                fig.add_annotation(
+                    x=fecha_entrega,
+                    y=len(df_gantt)/2,
+                    text="Entrega<br>" + fecha_entrega.strftime('%d-%m'),
+                    showarrow=True,
+                    arrowhead=1
+                )    
 
                 # Agregar una línea vertical para la fecha actual
                 fecha_actual = datetime.now().strftime('%Y-%m-%d')
