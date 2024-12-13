@@ -330,10 +330,10 @@ if st.button("Ejecutar Consulta"):
                 dias = df['DIAS'].iloc[0]
 
                 # Cálculo de las fechas de inicio y fin
-		 
-                start_armado = pd.to_datetime(df_postgres['star_armado'].iloc[0]) 
 		inicial = pd.to_datetime(df_postgres['Fecha_Colocacion'].iloc[0])
-		fin = pd.to_datetime(df_postgres['Fecha_Entrega'].iloc[0])  
+		fin = pd.to_datetime(df_postgres['Fecha_Entrega'].iloc[0]) 
+                start_armado = pd.to_datetime(df_postgres['star_armado'].iloc[0]) 
+		  
                 start_tenido = pd.to_datetime(df_postgres['star_tenido'].iloc[0])
                 start_telaprob = pd.to_datetime(df_postgres['star_telaprob'].iloc[0])
                 start_corte = pd.to_datetime(df_postgres['star_corte'].iloc[0])
