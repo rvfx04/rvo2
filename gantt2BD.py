@@ -440,7 +440,7 @@ if st.button("Ejecutar Consulta"):
                     y0=0,
                     x1=fecha_actual,
                     y1=len(df_gantt),
-                    line=dict(color="black", width=2, dash="dash"),
+                    line=dict(color="blue", width=2, dash="dash"),
                     name="Fecha Actual"
                 )
 
