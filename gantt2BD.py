@@ -447,6 +447,44 @@ if st.button("Ejecutar Consulta"):
                     name="Fecha Actual"
                 )
 
+                fig.add_shape(
+                    type="line",
+                    x0=inicial,
+                    y0=0,
+                    x1=inicial,
+                    y1=len(df_gantt),
+                    line=dict(color="green", width=2, dash="dash"),
+                    name="inicial"
+                )
+		
+                # Para la fecha de colocación
+                fig.add_annotation(
+                    x=inicial,
+                    y=len(df_gantt)/2,
+                    text="Inicio<br>" + inicial.strftime('%d-%m'),
+                    showarrow=True,
+                    arrowhead=1
+                )        	
+                fig.add_shape(
+                    type="line",
+                    x0=fin,
+                    y0=0,
+                    x1=fin,
+                    y1=len(df_gantt),
+                    line=dict(color="red", width=2, dash="dash"),
+                    name="fin"
+                )
+		# Para la fecha de entrega
+                fig.add_annotation(
+                    x=fin,
+                    y=len(df_gantt)/2,
+                    text="Fin<br>" + fecha_entrega.strftime('%d-%m'),
+                    showarrow=True,
+                    arrowhead=1
+                )
+
+        
+
                
                 st.title(f"Pedido: {df['PEDIDO'].iloc[0]}")
                 st.write(f"Cliente: {df['CLIENTE'].iloc[0]}")
