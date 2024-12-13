@@ -316,7 +316,7 @@ if st.button("Ejecutar Consulta"):
                 st.dataframe(df)
                 
                 # Add a subheader and display PostgreSQL data
-                st.subheader("Información Adicional del Pedido")
+                st.subheader("Info Plan")
                 if not df_postgres.empty:
                     st.dataframe(df_postgres, hide_index=True)
                 else:
