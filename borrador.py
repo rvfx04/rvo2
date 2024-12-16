@@ -31,8 +31,7 @@ def connect_postgres():
 
 def run_query(pedido):
     conn = connect_db()
-    query = """[Tu consulta SQL original aquí]"""  # Mantener la consulta original
-query = """SELECT gg.PEDIDO, --gg.IdDocumento_OrdenVenta, 
+    query = """SELECT gg.PEDIDO, --gg.IdDocumento_OrdenVenta, 
     	gg.F_EMISION, gg.F_ENTREGA, gg.DIAS, gg.CLIENTE, gg.PO, gg.KG_REQ, 
        gg.KG_ARMP, gg.KG_TENIDP, gg.KG_TELAPROBP, gg.UNID, gg.PROGP, gg.CORTADOP, gg.COSIDOP, 
        ff.FMINARM, ff.FMAXARM, ff.FMINTENID, ff.FMAXTENID, ff.FMINTELAPROB, ff.FMAXTELAPROB, ff.FMINCORTE, ff.FMAXCORTE, ff.FMINCOSIDO, ff.FMAXCOSIDO
