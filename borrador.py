@@ -256,9 +256,9 @@ WHERE x.CoddocOrdenVenta IS NOT NULL
     ) ff
 ON gg.IdDocumento_OrdenVenta = ff.IdDocumento_OrdenVenta
 WHERE gg.PEDIDO = ?"""
-    df = pd.read_sql(query, conn, params=(pedido,))
-    conn.close()
-    return df
+df = pd.read_sql(query, conn, params=(pedido,))
+conn.close()
+return df
 
 def run_postgres_query(pedido):
     conn = connect_postgres()
