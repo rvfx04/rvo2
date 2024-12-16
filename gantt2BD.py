@@ -478,7 +478,7 @@ if st.button("Ejecutar Consulta"):
                 fig.add_annotation(
                     x=fin,
                     y=len(df_gantt)/3,
-                    text="Fin<br>" + fecha_entrega.strftime('%b %d'),
+                    text="Fin<br>" + fin.strftime('%b %d'),
                     showarrow=True,
                     arrowhead=1
                 )
