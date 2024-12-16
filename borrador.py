@@ -263,7 +263,25 @@ WHERE gg.PEDIDO = ?"""
 def run_postgres_query(pedido):
     conn = connect_postgres()
     
-    query = '''[Tu consulta PostgreSQL original aquí]'''  # Mantener la consulta original
+    query = '''
+    SELECT 
+        "IdDocumento_OrdenVenta" as pedido,
+	"Fecha_Colocacion",
+	"Fecha_Entrega",
+ 
+        "star_armado",
+        "star_tenido",
+        "star_telaprob",
+        "star_corte",
+        "star_costura",
+        "finish_armado",
+        "finish_tenido",
+        "finish_telaprob",
+        "finish_corte",
+        "finish_costura"
+    FROM "docOrdenVenta"
+    WHERE "IdDocumento_OrdenVenta" = %s
+    '''
     
     df = pd.read_sql(query, conn, params=(pedido,))
     conn.close()
