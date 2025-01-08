@@ -296,201 +296,126 @@ def run_postgres_query(pedido):
 
 
 
-# Interfaz de usuario de Streamlit
-st.title("Progreso del Pedido")
+# Interfaz de usuario
+st.title("Progreso de Pedidos Consolidado")
 
-# Campo de entrada para ingresar el número de pedido
-pedido = st.text_input("Ingresa el número de pedido")
+# Multi-select para pedidos
+pedidos_input = st.text_input("Ingresa los números de pedido (separados por coma)")
 
-# Si el botón se presiona y hay un número de pedido ingresado, se ejecuta la consulta
 if st.button("Ejecutar Consulta"):
-    if pedido:
+    if pedidos_input:
         try:
-            # Execute SQL Server query
-            df = run_query(pedido)
+            pedidos = [p.strip() for p in pedidos_input.split(',')]
             
-            # Execute PostgreSQL query
-            df_postgres = run_postgres_query(pedido)
+            # Execute queries
+            df = run_query(pedidos)
+            df_postgres = run_postgres_query(pedidos)
             
             if df.empty:
-                st.warning("No se encontraron datos para este pedido en SQL Server.")
+                st.warning("No se encontraron datos para estos pedidos en SQL Server.")
             else:
-                # Display existing SQL Server data
+                # Display consolidated data
+                st.subheader("Resumen de Pedidos")
+                summary_df = pd.DataFrame({
+                    'Total Unidades': [df['UNID'].sum()],
+                    'Total KG': [df['KG_REQ'].sum()],
+                    'Promedio Días': [df['DIAS'].mean()],
+                    'Cantidad Pedidos': [len(df)]
+                })
+                st.dataframe(summary_df)
+                
+                # Display detailed data
+                st.subheader("Detalle por Pedido")
                 st.dataframe(df)
                 
-                # Add a subheader and display PostgreSQL data
-                st.subheader("Info Plan")
-                if not df_postgres.empty:
-                    st.dataframe(df_postgres, hide_index=True)
-                else:
-                    st.warning("No se encontraron datos adicionales en PostgreSQL.")
-
-                # Procesar los datos para el gráfico de Gantt
-                f_emision = pd.to_datetime(df['F_EMISION'].iloc[0])
-                dias = df['DIAS'].iloc[0]
-
-                # Cálculo de las fechas de inicio y fin
-                
-                start_armado = pd.to_datetime(df_postgres['star_armado'].iloc[0]) 
-		  
-                start_tenido = pd.to_datetime(df_postgres['star_tenido'].iloc[0])
-                start_telaprob = pd.to_datetime(df_postgres['star_telaprob'].iloc[0])
-                start_corte = pd.to_datetime(df_postgres['star_corte'].iloc[0])
-                start_costura = pd.to_datetime(df_postgres['star_costura'].iloc[0])
-                finish_armado = pd.to_datetime(df_postgres['finish_armado'].iloc[0])
-                finish_tenido = pd.to_datetime(df_postgres['finish_tenido'].iloc[0])
-                finish_telaprob = pd.to_datetime(df_postgres['finish_telaprob'].iloc[0])
-                finish_corte = pd.to_datetime(df_postgres['finish_corte'].iloc[0])
-                finish_costura = pd.to_datetime(df_postgres['finish_costura'].iloc[0])
-                inicial = pd.to_datetime(df_postgres['Fecha_Colocacion'].iloc[0])
-                fin = pd.to_datetime(df_postgres['Fecha_Entrega'].iloc[0]) 
-		
-
-                 
-				# Crear DataFrame para el gráfico de Gantt
+                # Create consolidated Gantt chart
                 df_gantt = pd.DataFrame({
                     'Proceso': ['ARMADO', 'TEÑIDO', 'TELA_APROB', 'CORTE', 'COSTURA'],
-                    'Start': [start_armado, start_tenido, start_telaprob, start_corte, start_costura],
-                    'Finish': [finish_armado, finish_tenido, finish_telaprob, finish_corte, finish_costura],
-                    'Start Real': [pd.to_datetime(df['FMINARM'].iloc[0]), pd.to_datetime(df['FMINTENID'].iloc[0]), 
-                                   pd.to_datetime(df['FMINTELAPROB'].iloc[0]), pd.to_datetime(df['FMINCORTE'].iloc[0]), 
-                                   pd.to_datetime(df['FMINCOSIDO'].iloc[0])],
-                    'Finish Real': [pd.to_datetime(df['FMAXARM'].iloc[0]), pd.to_datetime(df['FMAXTENID'].iloc[0]), 
-                                    pd.to_datetime(df['FMAXTELAPROB'].iloc[0]), pd.to_datetime(df['FMAXCORTE'].iloc[0]), 
-                                    pd.to_datetime(df['FMAXCOSIDO'].iloc[0])],
-                    'Avance': [df['KG_ARMP'].iloc[0], df['KG_TENIDP'].iloc[0], df['KG_TELAPROBP'].iloc[0], 
-                               df['CORTADOP'].iloc[0], df['COSIDOP'].iloc[0]]
+                    'Start': [
+                        df_postgres['star_armado'].min(),
+                        df_postgres['star_tenido'].min(),
+                        df_postgres['star_telaprob'].min(),
+                        df_postgres['star_corte'].min(),
+                        df_postgres['star_costura'].min()
+                    ],
+                    'Finish': [
+                        df_postgres['finish_armado'].max(),
+                        df_postgres['finish_tenido'].max(),
+                        df_postgres['finish_telaprob'].max(),
+                        df_postgres['finish_corte'].max(),
+                        df_postgres['finish_costura'].max()
+                    ],
+                    'Start Real': [
+                        pd.to_datetime(df['FMINARM']).min(),
+                        pd.to_datetime(df['FMINTENID']).min(),
+                        pd.to_datetime(df['FMINTELAPROB']).min(),
+                        pd.to_datetime(df['FMINCORTE']).min(),
+                        pd.to_datetime(df['FMINCOSIDO']).min()
+                    ],
+                    'Finish Real': [
+                        pd.to_datetime(df['FMAXARM']).max(),
+                        pd.to_datetime(df['FMAXTENID']).max(),
+                        pd.to_datetime(df['FMAXTELAPROB']).max(),
+                        pd.to_datetime(df['FMAXCORTE']).max(),
+                        pd.to_datetime(df['FMAXCOSIDO']).max()
+                    ],
+                    'Avance Promedio': [
+                        df['KG_ARMP'].str.rstrip('%').astype(float).mean(),
+                        df['KG_TENIDP'].str.rstrip('%').astype(float).mean(),
+                        df['KG_TELAPROBP'].str.rstrip('%').astype(float).mean(),
+                        df['CORTADOP'].str.rstrip('%').astype(float).mean(),
+                        df['COSIDOP'].str.rstrip('%').astype(float).mean()
+                    ]
                 })
-
-                # Crear el gráfico de Gantt
-                fig = px.timeline(df_gantt, x_start="Start", x_end="Finish", y="Proceso", text="Avance")
-
-	        # Cambiar el color de las barras
+                
+                # Create Gantt chart
+                fig = px.timeline(df_gantt, x_start="Start", x_end="Finish", 
+                                y="Proceso", text="Avance Promedio")
+                
+                # Style the chart
                 for trace in fig.data:
-                    trace.marker.color = 'lightsteelblue'  # Puedes cambiar a cualquier color válido
-
-                # Mostrar las etiquetas del eje X cada 7 días
-                tick0_date = f_emision.strftime('%Y-%m-%d')
-                fig.update_xaxes(tickmode='linear', tick0=tick0_date, dtick=7 * 24 * 60 * 60 * 1000)
-
-                # Ajustar el diseño del gráfico
-                fig.update_yaxes(autorange="reversed")
-
-                # Agregar las barras de las fechas reales
+                    trace.marker.color = 'lightsteelblue'
+                
+                # Add real dates markers
                 fig.add_trace(go.Scatter(
                     x=df_gantt['Start Real'],
                     y=df_gantt['Proceso'],
                     mode='markers',
-                    #marker=dict(color='black', size=10),
-		    marker=dict(symbol='triangle-up', size=10, color='black'),	
+                    marker=dict(symbol='triangle-up', size=10, color='black'),
                     name='Start Real'
                 ))
+                
                 fig.add_trace(go.Scatter(
                     x=df_gantt['Finish Real'],
                     y=df_gantt['Proceso'],
                     mode='markers',
-		    marker=dict(symbol='triangle-down', size=10, color='red'),
-                    #marker=dict(color='red', size=10),
+                    marker=dict(symbol='triangle-down', size=10, color='red'),
                     name='Finish Real'
                 ))
-
-                # Fechas de colocación y entrega
-                fecha_colocacion = pd.to_datetime(df['F_EMISION'].iloc[0])
-                fecha_entrega = pd.to_datetime(df['F_ENTREGA'].iloc[0])
-
-                # Agregar líneas verticales para las fechas de colocación y entrega
-                fig.add_shape(
-                    type="line",
-                    x0=fecha_colocacion,
-                    y0=0,
-                    x1=fecha_colocacion,
-                    y1=len(df_gantt),
-                    line=dict(color="green", width=2, dash="dash"),
-                    name="Fecha Colocación"
+                
+                # Add vertical lines
+                min_fecha_colocacion = pd.to_datetime(df['F_EMISION']).min()
+                max_fecha_entrega = pd.to_datetime(df['F_ENTREGA']).max()
+                fecha_actual = datetime.now()
+                
+                for fecha, color, nombre in [
+                    (min_fecha_colocacion, "green", "Fecha Emisión Min"),
+                    (max_fecha_entrega, "red", "Fecha Entrega Max"),
+                    (fecha_actual, "blue", "Fecha Actual")
+                ]:
+                    fig.add_vline(x=fecha, line_dash="dash", line_color=color,
+                                annotation_text=nombre)
+                
+                # Update layout
+                fig.update_layout(
+                    title=f"Gantt Consolidado - {len(pedidos)} Pedidos",
+                    height=400,
+                    showlegend=True
                 )
-		
-                # Para la fecha de colocación
-                fig.add_annotation(
-                    x=fecha_colocacion,
-                    y=len(df_gantt)/2,
-                    text="Emision<br>" + fecha_colocacion.strftime('%b %d'),
-                    showarrow=True,
-                    arrowhead=1
-                )        	
-                fig.add_shape(
-                    type="line",
-                    x0=fecha_entrega,
-                    y0=0,
-                    x1=fecha_entrega,
-                    y1=len(df_gantt),
-                    line=dict(color="red", width=2, dash="dash"),
-                    name="Fecha Entrega"
-                )
-		# Para la fecha de entrega
-                fig.add_annotation(
-                    x=fecha_entrega,
-                    y=len(df_gantt)/2,
-                    text="Entrega<br>" + fecha_entrega.strftime('%b %d'),
-                    showarrow=True,
-                    arrowhead=1
-                )    
-
-                # Agregar una línea vertical para la fecha actual
-                fecha_actual = datetime.now().strftime('%Y-%m-%d')
-                fig.add_shape(
-                    type="line",
-                    x0=fecha_actual,
-                    y0=0,
-                    x1=fecha_actual,
-                    y1=len(df_gantt),
-                    line=dict(color="blue", width=2, dash="dash"),
-                    name="Fecha Actual"
-                )
-
-                fig.add_shape(
-                    type="line",
-                    x0=inicial,
-                    y0=0,
-                    x1=inicial,
-                    y1=len(df_gantt),
-                    line=dict(color="green", width=2, dash="dash"),
-                    name="inicial"
-                )
-		
-                # Para la fecha de colocación
-                fig.add_annotation(
-                    x=inicial,
-                    y=len(df_gantt)/3,
-                    text="Inicio<br>" + inicial.strftime('%b %d'),
-                    showarrow=True,
-                    arrowhead=1
-                )        	
-                fig.add_shape(
-                    type="line",
-                    x0=fin,
-                    y0=0,
-                    x1=fin,
-                    y1=len(df_gantt),
-                    line=dict(color="red", width=2, dash="dash"),
-                    name="fin"
-                )
-		# Para la fecha de entrega
-                fig.add_annotation(
-                    x=fin,
-                    y=len(df_gantt)/3,
-                    text="Fin<br>" + fin.strftime('%b %d'),
-                    showarrow=True,
-                    arrowhead=1
-                )
-
-        
-
-               
-                st.title(f"Pedido: {df['PEDIDO'].iloc[0]}")
-                st.write(f"Cliente: {df['CLIENTE'].iloc[0]}")
-                st.plotly_chart(fig)
-
+                
+                st.plotly_chart(fig, use_container_width=True)
+                
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {e}")
     else:
-        st.warning("Por favor ingresa un número de pedido.")
+        st.warning("Por favor ingresa al menos un número de pedido.")
