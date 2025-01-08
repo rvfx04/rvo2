@@ -300,7 +300,6 @@ def run_postgres_query(pedido):
 # Interfaz de usuario
 st.title("Progreso de Pedidos Consolidado")
 
-# Multi-select para pedidos
 pedidos_input = st.text_input("Ingresa los números de pedido (separados por coma)")
 
 if st.button("Ejecutar Consulta"):
@@ -308,14 +307,14 @@ if st.button("Ejecutar Consulta"):
         try:
             pedidos = [p.strip() for p in pedidos_input.split(',')]
             
-            # Execute queries
+            # Ejecutar consultas
             df = run_query(pedidos)
             df_postgres = run_postgres_query(pedidos)
             
             if df.empty:
                 st.warning("No se encontraron datos para estos pedidos en SQL Server.")
             else:
-                # Display consolidated data
+                # Mostrar resumen de datos
                 st.subheader("Resumen de Pedidos")
                 summary_df = pd.DataFrame({
                     'Total Unidades': [df['UNID'].sum()],
@@ -325,11 +324,25 @@ if st.button("Ejecutar Consulta"):
                 })
                 st.dataframe(summary_df)
                 
-                # Display detailed data
+                # Mostrar datos detallados
                 st.subheader("Detalle por Pedido")
                 st.dataframe(df)
                 
-                # Create consolidated Gantt chart
+                # Preparar datos para el Gantt
+                # Asegurarse de que todas las fechas sean datetime
+                date_columns = ['star_armado', 'star_tenido', 'star_telaprob', 'star_corte', 'star_costura',
+                              'finish_armado', 'finish_tenido', 'finish_telaprob', 'finish_corte', 'finish_costura']
+                
+                for col in date_columns:
+                    df_postgres[col] = pd.to_datetime(df_postgres[col], errors='coerce')
+
+                real_date_columns = ['FMINARM', 'FMAXARM', 'FMINTENID', 'FMAXTENID', 'FMINTELAPROB', 
+                                   'FMAXTELAPROB', 'FMINCORTE', 'FMAXCORTE', 'FMINCOSIDO', 'FMAXCOSIDO']
+                
+                for col in real_date_columns:
+                    df[col] = pd.to_datetime(df[col], errors='coerce')
+
+                # Crear DataFrame para el Gantt
                 df_gantt = pd.DataFrame({
                     'Proceso': ['ARMADO', 'TEÑIDO', 'TELA_APROB', 'CORTE', 'COSTURA'],
                     'Start': [
@@ -347,18 +360,18 @@ if st.button("Ejecutar Consulta"):
                         df_postgres['finish_costura'].max()
                     ],
                     'Start Real': [
-                        pd.to_datetime(df['FMINARM']).min(),
-                        pd.to_datetime(df['FMINTENID']).min(),
-                        pd.to_datetime(df['FMINTELAPROB']).min(),
-                        pd.to_datetime(df['FMINCORTE']).min(),
-                        pd.to_datetime(df['FMINCOSIDO']).min()
+                        df['FMINARM'].min(),
+                        df['FMINTENID'].min(),
+                        df['FMINTELAPROB'].min(),
+                        df['FMINCORTE'].min(),
+                        df['FMINCOSIDO'].min()
                     ],
                     'Finish Real': [
-                        pd.to_datetime(df['FMAXARM']).max(),
-                        pd.to_datetime(df['FMAXTENID']).max(),
-                        pd.to_datetime(df['FMAXTELAPROB']).max(),
-                        pd.to_datetime(df['FMAXCORTE']).max(),
-                        pd.to_datetime(df['FMAXCOSIDO']).max()
+                        df['FMAXARM'].max(),
+                        df['FMAXTENID'].max(),
+                        df['FMAXTELAPROB'].max(),
+                        df['FMAXCORTE'].max(),
+                        df['FMAXCOSIDO'].max()
                     ],
                     'Avance Promedio': [
                         df['KG_ARMP'].str.rstrip('%').astype(float).mean(),
@@ -369,15 +382,15 @@ if st.button("Ejecutar Consulta"):
                     ]
                 })
                 
-                # Create Gantt chart
+                # Crear gráfico Gantt
                 fig = px.timeline(df_gantt, x_start="Start", x_end="Finish", 
                                 y="Proceso", text="Avance Promedio")
                 
-                # Style the chart
+                # Estilizar el gráfico
                 for trace in fig.data:
                     trace.marker.color = 'lightsteelblue'
                 
-                # Add real dates markers
+                # Agregar marcadores de fechas reales
                 fig.add_trace(go.Scatter(
                     x=df_gantt['Start Real'],
                     y=df_gantt['Proceso'],
@@ -394,20 +407,23 @@ if st.button("Ejecutar Consulta"):
                     name='Finish Real'
                 ))
                 
-                # Add vertical lines
+                # Agregar líneas verticales
                 min_fecha_colocacion = pd.to_datetime(df['F_EMISION']).min()
                 max_fecha_entrega = pd.to_datetime(df['F_ENTREGA']).max()
-                fecha_actual = datetime.now()
+                fecha_actual = pd.Timestamp(datetime.now())
                 
-                for fecha, color, nombre in [
-                    (min_fecha_colocacion, "green", "Fecha Emisión Min"),
-                    (max_fecha_entrega, "red", "Fecha Entrega Max"),
-                    (fecha_actual, "blue", "Fecha Actual")
-                ]:
-                    fig.add_vline(x=fecha, line_dash="dash", line_color=color,
-                                annotation_text=nombre)
+                if pd.notna(min_fecha_colocacion):
+                    fig.add_vline(x=min_fecha_colocacion, line_dash="dash", line_color="green",
+                                annotation_text="Fecha Emisión Min")
                 
-                # Update layout
+                if pd.notna(max_fecha_entrega):
+                    fig.add_vline(x=max_fecha_entrega, line_dash="dash", line_color="red",
+                                annotation_text="Fecha Entrega Max")
+                
+                fig.add_vline(x=fecha_actual, line_dash="dash", line_color="blue",
+                            annotation_text="Fecha Actual")
+                
+                # Actualizar diseño
                 fig.update_layout(
                     title=f"Gantt Consolidado - {len(pedidos)} Pedidos",
                     height=400,
@@ -417,6 +433,6 @@ if st.button("Ejecutar Consulta"):
                 st.plotly_chart(fig, use_container_width=True)
                 
         except Exception as e:
-            st.error(f"Error al ejecutar la consulta: {e}")
+            st.error(f"Error al ejecutar la consulta: {str(e)}")
     else:
         st.warning("Por favor ingresa al menos un número de pedido.")
