@@ -33,7 +33,7 @@ def connect_postgres():
 
 
 # Función para ejecutar la consulta SQL
-def run_query(pedido):
+def run_query(pedidos):
     conn = connect_db()
     query = """SELECT gg.PEDIDO, --gg.IdDocumento_OrdenVenta, 
     	gg.F_EMISION, gg.F_ENTREGA, gg.DIAS, gg.CLIENTE, gg.PO, gg.KG_REQ, 
@@ -258,16 +258,16 @@ WHERE x.CoddocOrdenVenta IS NOT NULL
 		and x.bAnulado=0
     ) ff
 ON gg.IdDocumento_OrdenVenta = ff.IdDocumento_OrdenVenta
-WHERE gg.PEDIDO = ?"""
+WHERE gg.PEDIDO IN ({})""".format(','.join(['?' for _ in pedidos])) 
 
-    df = pd.read_sql(query, conn, params=(pedido,))
+    df = pd.read_sql(query, conn, params=tuple(pedidos))
     conn.close()
     return df
 
 # New PostgreSQL query function
 def run_postgres_query(pedido):
     conn = connect_postgres()
-    
+    placeholders = ','.join(['%s' for _ in pedidos])
     # Modify this query to get the specific dates and information you want
     query = '''
     SELECT 
@@ -286,10 +286,10 @@ def run_postgres_query(pedido):
         "finish_corte",
         "finish_costura"
     FROM "docOrdenVenta"
-    WHERE "IdDocumento_OrdenVenta" = %s
-    '''
+    WHERE "IdDocumento_OrdenVenta" IN ({})
+    '''.format(placeholders)
     
-    df = pd.read_sql(query, conn, params=(pedido,))
+    df = pd.read_sql(query, conn, params=tuple(pedidos))
     conn.close()
     return df
 
