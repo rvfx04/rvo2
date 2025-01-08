@@ -424,11 +424,11 @@ if st.button("Ejecutar Consulta"):
                             annotation_text="Fecha Actual")
                 
                 # Actualizar diseño
-                #fig.update_layout(
-                    #title=f"Gantt Consolidado - {len(pedidos)} Pedidos",
-                    #height=400,
-                    #showlegend=True
-                #)
+                fig.update_layout(
+                    title=f"Gantt Consolidado - {len(pedidos)} Pedidos",
+                    height=400,
+                    showlegend=True
+                )
                 
                 st.plotly_chart(fig, use_container_width=True)
                 
