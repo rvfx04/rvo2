@@ -327,8 +327,8 @@ if st.button("Ejecutar Consulta"):
                 # Mostrar datos detallados
                 st.subheader("Detalle por Pedido")
                 st.dataframe(df)
-		st.dataframe(df_postgres)   
-                
+		#st.dataframe(df_postgres)   
+                st.dataframe(df_postgres)
                 # Preparar datos para el Gantt
                 # Convertir todas las fechas a datetime de manera segura
                 date_columns = ['star_armado', 'star_tenido', 'star_telaprob', 'star_corte', 'star_costura',
