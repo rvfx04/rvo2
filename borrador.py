@@ -327,6 +327,7 @@ if st.button("Ejecutar Consulta"):
                 # Mostrar datos detallados
                 st.subheader("Detalle por Pedido")
                 st.dataframe(df)
+		st.dataframe(df_postgres)   
                 
                 # Preparar datos para el Gantt
                 # Convertir todas las fechas a datetime de manera segura
