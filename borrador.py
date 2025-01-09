@@ -329,7 +329,7 @@ if st.button("Ejecutar Consulta"):
                 st.dataframe(df)
                 
                 # Preparar datos para el Gantt
-                # Asegurarse de que todas las fechas sean datetime
+                # Convertir todas las fechas a datetime de manera segura
                 date_columns = ['star_armado', 'star_tenido', 'star_telaprob', 'star_corte', 'star_costura',
                               'finish_armado', 'finish_tenido', 'finish_telaprob', 'finish_corte', 'finish_costura']
                 
@@ -342,46 +342,37 @@ if st.button("Ejecutar Consulta"):
                 for col in real_date_columns:
                     df[col] = pd.to_datetime(df[col], errors='coerce')
 
-                # Crear DataFrame para el Gantt
+                # Crear DataFrame para el Gantt con manejo seguro de fechas
                 df_gantt = pd.DataFrame({
-                    'Proceso': ['ARMADO', 'TEÑIDO', 'TELA_APROB', 'CORTE', 'COSTURA'],
-                    'Start': [
-                        df_postgres['star_armado'].min(),
-                        df_postgres['star_tenido'].min(),
-                        df_postgres['star_telaprob'].min(),
-                        df_postgres['star_corte'].min(),
-                        df_postgres['star_costura'].min()
-                    ],
-                    'Finish': [
-                        df_postgres['finish_armado'].max(),
-                        df_postgres['finish_tenido'].max(),
-                        df_postgres['finish_telaprob'].max(),
-                        df_postgres['finish_corte'].max(),
-                        df_postgres['finish_costura'].max()
-                    ],
-                    'Start Real': [
-                        df['FMINARM'].min(),
-                        df['FMINTENID'].min(),
-                        df['FMINTELAPROB'].min(),
-                        df['FMINCORTE'].min(),
-                        df['FMINCOSIDO'].min()
-                    ],
-                    'Finish Real': [
-                        df['FMAXARM'].max(),
-                        df['FMAXTENID'].max(),
-                        df['FMAXTELAPROB'].max(),
-                        df['FMAXCORTE'].max(),
-                        df['FMAXCOSIDO'].max()
-                    ],
-                    'Avance Promedio': [
-                        df['KG_ARMP'].str.rstrip('%').astype(float).mean(),
-                        df['KG_TENIDP'].str.rstrip('%').astype(float).mean(),
-                        df['KG_TELAPROBP'].str.rstrip('%').astype(float).mean(),
-                        df['CORTADOP'].str.rstrip('%').astype(float).mean(),
-                        df['COSIDOP'].str.rstrip('%').astype(float).mean()
-                    ]
+                    'Proceso': ['ARMADO', 'TEÑIDO', 'TELA_APROB', 'CORTE', 'COSTURA']
                 })
-                
+
+                # Agregar fechas de manera segura
+                for proceso, start_col, finish_col, start_real_col, finish_real_col in zip(
+                    df_gantt['Proceso'],
+                    ['star_armado', 'star_tenido', 'star_telaprob', 'star_corte', 'star_costura'],
+                    ['finish_armado', 'finish_tenido', 'finish_telaprob', 'finish_corte', 'finish_costura'],
+                    ['FMINARM', 'FMINTENID', 'FMINTELAPROB', 'FMINCORTE', 'FMINCOSIDO'],
+                    ['FMAXARM', 'FMAXTENID', 'FMAXTELAPROB', 'FMAXCORTE', 'FMAXCOSIDO']
+                ):
+                    df_gantt.loc[df_gantt['Proceso'] == proceso, 'Start'] = df_postgres[start_col].min()
+                    df_gantt.loc[df_gantt['Proceso'] == proceso, 'Finish'] = df_postgres[finish_col].max()
+                    df_gantt.loc[df_gantt['Proceso'] == proceso, 'Start Real'] = df[start_real_col].min()
+                    df_gantt.loc[df_gantt['Proceso'] == proceso, 'Finish Real'] = df[finish_real_col].max()
+
+                # Agregar avance promedio
+                progress_mapping = {
+                    'ARMADO': 'KG_ARMP',
+                    'TEÑIDO': 'KG_TENIDP',
+                    'TELA_APROB': 'KG_TELAPROBP',
+                    'CORTE': 'CORTADOP',
+                    'COSTURA': 'COSIDOP'
+                }
+
+                for proceso, col in progress_mapping.items():
+                    df_gantt.loc[df_gantt['Proceso'] == proceso, 'Avance Promedio'] = \
+                        df[col].str.rstrip('%').astype(float).mean()
+
                 # Crear gráfico Gantt
                 fig = px.timeline(df_gantt, x_start="Start", x_end="Finish", 
                                 y="Proceso", text="Avance Promedio")
@@ -407,7 +398,7 @@ if st.button("Ejecutar Consulta"):
                     name='Finish Real'
                 ))
                 
-                # Agregar líneas verticales
+                # Agregar líneas verticales con manejo seguro de fechas
                 min_fecha_colocacion = pd.to_datetime(df['F_EMISION']).min()
                 max_fecha_entrega = pd.to_datetime(df['F_ENTREGA']).max()
                 fecha_actual = pd.Timestamp(datetime.now())
@@ -432,6 +423,10 @@ if st.button("Ejecutar Consulta"):
                 
                 st.plotly_chart(fig, use_container_width=True)
                 
+        except Exception as e:
+            st.error(f"Error al ejecutar la consulta: {str(e)}")
+    else:
+        st.warning("Por favor ingresa al menos un número de pedido.")
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {str(e)}")
     else:
