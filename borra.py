@@ -374,55 +374,7 @@ if st.button("Ejecutar Consulta"):
                     df_gantt.loc[df_gantt['Proceso'] == proceso, 'Avance Promedio'] = \
                         df[col].str.rstrip('%').astype(float).mean()
 
-                # Crear gráfico Gantt
-                fig = px.timeline(df_gantt, x_start="Start", x_end="Finish", 
-                                y="Proceso", text="Avance Promedio")
                 
-                # Estilizar el gráfico
-                for trace in fig.data:
-                    trace.marker.color = 'lightsteelblue'
-                
-                # Agregar marcadores de fechas reales
-                fig.add_trace(go.Scatter(
-                    x=df_gantt['Start Real'],
-                    y=df_gantt['Proceso'],
-                    mode='markers',
-                    marker=dict(symbol='triangle-up', size=10, color='black'),
-                    name='Start Real'
-                ))
-                
-                fig.add_trace(go.Scatter(
-                    x=df_gantt['Finish Real'],
-                    y=df_gantt['Proceso'],
-                    mode='markers',
-                    marker=dict(symbol='triangle-down', size=10, color='red'),
-                    name='Finish Real'
-                ))
-                
-                # Agregar líneas verticales con manejo seguro de fechas
-                min_fecha_colocacion = pd.to_datetime(df['F_EMISION']).min()
-                max_fecha_entrega = pd.to_datetime(df['F_ENTREGA']).max()
-                fecha_actual = pd.Timestamp(datetime.now())
-                
-                if pd.notna(min_fecha_colocacion):
-                    fig.add_vline(x=min_fecha_colocacion, line_dash="dash", line_color="green",
-                                annotation_text="Fecha Emisión Min")
-                
-                if pd.notna(max_fecha_entrega):
-                    fig.add_vline(x=max_fecha_entrega, line_dash="dash", line_color="red",
-                                annotation_text="Fecha Entrega Max")
-                
-                fig.add_vline(x=fecha_actual, line_dash="dash", line_color="blue",
-                            annotation_text="Fecha Actual")
-                
-                # Actualizar diseño
-                fig.update_layout(
-                    title=f"Gantt Consolidado - {len(pedidos)} Pedidos",
-                    height=400,
-                    showlegend=True
-                )
-                
-                st.plotly_chart(fig, use_container_width=True)
                 
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {str(e)}")
