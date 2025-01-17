@@ -1,220 +1,431 @@
 import streamlit as st
+import pyodbc
 import pandas as pd
 import plotly.express as px
-import pyodbc
-from datetime import datetime
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+import psycopg2
 
-# [Previous functions remain the same: connect_to_db(), run_query_enviadas(), run_query_regresadas(), safe_date_format()]
+st.set_page_config(layout="wide")
 
-# Configuración de la página
-st.set_page_config(page_title="Control de bordados 47")
-
-# Función para conectar a la base de datos
-def connect_to_db():
+# Configurar la conexión a la base de datos utilizando las credenciales almacenadas en secrets
+def connect_db():
     connection = pyodbc.connect(
         "driver={odbc driver 17 for sql server};"
-        "server=" + st.secrets["server"] + ";"
-        "database=" + st.secrets["database"] + ";"
-        "uid=" + st.secrets["username"] + ";"
-        "pwd=" + st.secrets["password"] + ";"
+        "server=" + st.secrets["msserver"] + ";"
+        "database=" + st.secrets["msdatabase"] + ";"
+        "uid=" + st.secrets["msusername"] + ";"
+        "pwd=" + st.secrets["mspassword"] + ";"
     )
     return connection
 
-# Función para ejecutar la consulta de unidades enviadas
-def run_query_enviadas():
-    conn = connect_to_db()
-    query = """
-    SELECT 
-        e.CoddocOrdenProduccion AS OP,
-        MIN(d.dtFechaEmision) AS FECHA_ENVIO,
-        MIN(f.NommaeAnexoProveedor) AS PROVEEDOR,
-        SUM(b.dCantidadSal) AS UNIDADES_ENVIADAS, b.IdDocumento_NotaInventario
-    FROM docNotaInventarioItem b
-    INNER JOIN docGuiaRemisionDetalle c ON b.IdDocumento_NotaInventario = c.IdDocumento_NotaInventario
-    INNER JOIN docGuiaRemision d ON c.IdDocumento_GuiaRemision = d.IdDocumento_GuiaRemision
-    INNER JOIN docNotaInventario a ON a.IdDocumento_NotaInventario = b.IdDocumento_NotaInventario
-    INNER JOIN docOrdenProduccion e ON a.IdDocumento_OrdenProduccion = e.IdDocumento_OrdenProduccion
-    INNER JOIN maeAnexoProveedor f ON f.IdmaeAnexo_Proveedor = d.IdmaeAnexo_Destino
-    WHERE d.IdmaeAnexo_Destino IN (6536, 4251, 6546, 6626)
-        AND b.dCantidadSal > 0
-        AND c.IdtdDocumentoForm_NotaInventario = 130
-        AND d.dtFechaEmision > '01-09-2024'
-        AND a.bAnulado = 0
-        AND d.bAnulado = 0 and NOT  a.IdDocumento_NotaInventario in (489353,493532,486774,493055,492058)
-    GROUP BY e.CoddocOrdenProduccion, b.IdDocumento_NotaInventario
-    """
-    df = pd.read_sql(query, conn)
-    conn.close()
-    return df
-
-# Función para ejecutar la consulta de unidades regresadas
-def run_query_regresadas():
-    conn = connect_to_db()
-    query = """
-    SELECT c.CoddocOrdenProduccion AS OP, MIN(A.dtFechaRegistro) as FECHA_REGRESO,
-        MIN(d.NommaeAnexoProveedor) AS PROVEEDOR, SUM(b.dCantidadIng) AS UNIDADES_REGRESADAS, a.IdDocumento_NotaInventario
-    FROM docNotaInventario a 
-    INNER JOIN docNotaInventarioItem b ON a.IdDocumento_NotaInventario = b.IdDocumento_NotaInventario
-    INNER JOIN docOrdenProduccion c ON a.IdDocumento_OrdenProduccion = c.IdDocumento_OrdenProduccion
-    INNER JOIN maeAnexoProveedor d ON a.IdmaeAnexo = d.IdmaeAnexo_Proveedor
-    WHERE a.IdmaeAnexo IN (6536,4251, 6546)
-        AND a.dtFechaRegistro > '01-09-2024'
-        AND a.IdtdDocumentoForm = 131
-        AND a.bAnulado = 0
-        AND a.IdmaeSunatCTipoComprobantePago = 10 and NOT  a.IdDocumento_NotaInventario in (489353,493532,486774,493055,492058)
-    GROUP BY c.CoddocOrdenProduccion , a.IdDocumento_NotaInventario
-    """
-    df = pd.read_sql(query, conn)
-    conn.close()
-    return df
-
-# Función para formatear fechas de manera segura
-def safe_date_format(date):
-    if pd.isnull(date):
-        return ''
-    if isinstance(date, (int, float)):
-        try:
-            return datetime.fromtimestamp(date).strftime('%Y-%m-%d')
-        except:
-            return str(date)
-    if isinstance(date, str):
-        try:
-            return datetime.strptime(date, '%Y-%m-%d').strftime('%Y-%m-%d')
-        except:
-            return date
-    if isinstance(date, datetime):
-        return date.strftime('%Y-%m-%d')
-    return str(date)
-
-
-# Título de la aplicación
-st.title("Control de bordados 47")
-
-# Cargar datos
-try:
-    df_enviadas = run_query_enviadas()
-    df_regresadas = run_query_regresadas()
-
-    # Convertir fechas de manera segura
-    df_enviadas['FECHA_ENVIO'] = pd.to_datetime(df_enviadas['FECHA_ENVIO'], errors='coerce')
-    df_regresadas['FECHA_REGRESO'] = pd.to_datetime(df_regresadas['FECHA_REGRESO'], errors='coerce')
-
-    df_detallado = pd.merge(df_enviadas, df_regresadas, on=['OP', 'PROVEEDOR'], how='outer')
-
-    # Llenar NaN con 0 solo para las columnas numéricas
-    df_detallado['UNIDADES_ENVIADAS'] = df_detallado['UNIDADES_ENVIADAS'].fillna(0)
-    df_detallado['UNIDADES_REGRESADAS'] = df_detallado['UNIDADES_REGRESADAS'].fillna(0)
-
-    df_detallado['SALDO'] = df_detallado['UNIDADES_ENVIADAS'] - df_detallado['UNIDADES_REGRESADAS']
-    
-    # Agregar columna de PEDIDO y columna de estado de retorno
-    df_detallado['PEDIDO'] = df_detallado['OP'].str[:4]
-    df_detallado['ESTADO_RETORNO'] = df_detallado.apply(
-        lambda row: 'Pendiente' if row['UNIDADES_REGRESADAS'] == 0 else 'Retornado', axis=1
+# New PostgreSQL connection function
+def connect_postgres():
+    connection = psycopg2.connect(
+        host=st.secrets["host"],
+        port=st.secrets["port"],
+        database=st.secrets["database"],
+        user=st.secrets["user"],
+        password=st.secrets["password"]
     )
-    
-    # Ordenar por OP
-    df_detallado = df_detallado.sort_values('OP')
+    return connection
 
-    # Calcular totales
-    total_enviadas = df_detallado['UNIDADES_ENVIADAS'].sum()
-    total_regresadas = df_detallado['UNIDADES_REGRESADAS'].sum()
-    saldo_total = total_enviadas - total_regresadas
 
-    # Mostrar estadísticas
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total Envio", f"{total_enviadas:,.0f}")
-    col2.metric("Total Retorno", f"{total_regresadas:,.0f}")
-    col3.metric("Saldo Total", f"{saldo_total:,.0f}")
 
-    # Add this after the total statistics section (after the col3.metric() lines)
-    # Summary by Provider
-    st.subheader("Resumen por Proveedor")
+# Función para ejecutar la consulta SQL
+def run_query(pedidos):
+    conn = connect_db()
+    query = """SELECT gg.PEDIDO, --gg.IdDocumento_OrdenVenta, 
+    	gg.F_EMISION, gg.F_ENTREGA, gg.DIAS, gg.CLIENTE, gg.PO, gg.KG_REQ, 
+       gg.KG_ARMP, gg.KG_TENIDP, gg.KG_TELAPROBP, gg.UNID, gg.PROGP, gg.CORTADOP, gg.COSIDOP, 
+       ff.FMINARM, ff.FMAXARM, ff.FMINTENID, ff.FMAXTENID, ff.FMINTELAPROB, ff.FMAXTELAPROB, ff.FMINCORTE, ff.FMAXCORTE, ff.FMINCOSIDO, ff.FMAXCOSIDO
+FROM 
+    (SELECT
+    a.CoddocOrdenVenta AS PEDIDO, 
+    a.IdDocumento_OrdenVenta,
+    CASE WHEN ISDATE(a.dtFechaEmision) = 1 THEN CONVERT(DATE, a.dtFechaEmision) ELSE NULL END AS F_EMISION,
+    CASE WHEN ISDATE(a.dtFechaEntrega) = 1 THEN CONVERT(DATE, a.dtFechaEntrega) ELSE NULL END AS F_ENTREGA,
+    DATEDIFF(day, a.dtFechaEmision, a.dtFechaEntrega) AS DIAS,
     
-    # Calculate summary statistics by provider
-    proveedor_summary = df_detallado.groupby('PROVEEDOR').agg({
-        'UNIDADES_ENVIADAS': 'sum',
-        'UNIDADES_REGRESADAS': 'sum',
-        'SALDO': 'sum',
-        'OP': 'count'
-    }).reset_index()
-    
-    proveedor_summary = proveedor_summary.rename(columns={
-        'UNIDADES_ENVIADAS': 'U_ENV',
-        'UNIDADES_REGRESADAS': 'U_REG',
-        'OP': 'CANT_OPs'
-    })
-    
-    # Style the summary dataframe
-    st.dataframe(proveedor_summary.style.format({
-        'U_ENV': '{:,.0f}',
-        'U_REG': '{:,.0f}',
-        'SALDO': '{:,.0f}',
-        'CANT_OPs': '{:,.0f}'
-    }))
+    SUBSTRING(b.NommaeAnexoCliente, 1, 15) AS CLIENTE,
+    a.nvDocumentoReferencia AS PO,
+    CONVERT(INT, COALESCE(d.KG, 0)) AS KG_REQ,
+    FORMAT(CASE WHEN d.KG = 0 THEN 0 ELSE (COALESCE(t.KG_ARM, 0) / d.KG) END, '0%') AS KG_ARMP,
+    FORMAT(CASE WHEN d.KG = 0 THEN 0 ELSE (COALESCE(t.KG_TEÑIDOS, 0) / d.KG) END, '0%') AS KG_TENIDP,
+    FORMAT(CASE WHEN d.KG = 0 THEN 0 ELSE (COALESCE(t.KG_PRODUC, 0) / d.KG) END, '0%') AS KG_TELAPROBP,
+    CONVERT(INT, a.dCantidad) AS UNID,
+    FORMAT(CASE WHEN a.dCantidad = 0 THEN 0 ELSE (COALESCE(programado.PROG, 0) / a.dCantidad) END, '0%') AS PROGP,
+    FORMAT(CASE WHEN a.dCantidad = 0 THEN 0 ELSE (COALESCE(cortado.CORTADO, 0) / a.dCantidad) END, '0%') AS CORTADOP,
+    FORMAT(CASE WHEN a.dCantidad = 0 THEN 0 ELSE (COALESCE(cosido.COSIDO, 0) / a.dCantidad) END, '0%') AS COSIDOP
+FROM docOrdenVenta a
+INNER JOIN maeAnexoCliente b ON a.IdmaeAnexo_Cliente = b.IdmaeAnexo_Cliente
+LEFT JOIN (
+    SELECT
+        c.IdDocumento_Referencia AS PEDIDO,
+        SUM(c.dCantidad) AS KG
+    FROM docOrdenVentaItem c
+    WHERE c.IdDocumento_Referencia > 0
+    GROUP BY c.IdDocumento_Referencia
+) d ON a.IdDocumento_OrdenVenta = d.PEDIDO
+LEFT JOIN (
+    SELECT
+        x.IdDocumento_Referencia AS PEDIDO,
+        SUM(y.dCantidadProgramado) AS KG_ARM,
+        SUM(z.bcerrado * y.dCantidadRequerido) AS KG_PRODUC,
+        SUM(s.bcerrado * y.dCantidadProgramado) AS KG_TEÑIDOS
+    FROM docOrdenProduccionItem y
+    INNER JOIN docOrdenProduccion z ON y.IdDocumento_OrdenProduccion = z.IdDocumento_OrdenProduccion
+    INNER JOIN docOrdenVentaItem x ON (z.IdDocumento_Referencia = x.IdDocumento_OrdenVenta AND y.idmaeItem = x.IdmaeItem)
+    INNER JOIN docOrdenProduccionRuta s ON y.IdDocumento_OrdenProduccion = s.IdDocumento_OrdenProduccion
+    WHERE s.IdmaeReceta > 0
+    GROUP BY x.IdDocumento_Referencia
+) t ON a.IdDocumento_OrdenVenta = t.PEDIDO
+LEFT JOIN (
+    SELECT 
+        g.IdDocumento_OrdenVenta,
+        SUM(a.dCantidadProgramado) AS PROG
+    FROM dbo.docOrdenProduccion c WITH (NOLOCK)
+    INNER JOIN dbo.docOrdenProduccionItem a WITH (NOLOCK)
+        ON c.IdDocumento_OrdenProduccion = a.IdDocumento_OrdenProduccion
+    INNER JOIN dbo.docOrdenVenta g WITH (NOLOCK)
+        ON c.IdDocumento_Referencia = g.IdDocumento_OrdenVenta
+    INNER JOIN dbo.docOrdenProduccionRuta b WITH (NOLOCK)
+        ON c.IdDocumento_OrdenProduccion = b.IdDocumento_OrdenProduccion
+    WHERE --c.bCerrado = 0  AND
+        c.bAnulado = 0
+        AND c.IdtdDocumentoForm = 127
+        AND b.IdmaeCentroCosto = 29
+    GROUP BY g.IdDocumento_OrdenVenta
+) AS programado
+ON a.IdDocumento_OrdenVenta = programado.IdDocumento_OrdenVenta
+LEFT JOIN (
+    SELECT 
+        g.IdDocumento_OrdenVenta,
+        SUM(b.dCantidadIng) AS CORTADO
+    FROM dbo.docNotaInventario a WITH (NOLOCK)
+    INNER JOIN dbo.maeCentroCosto a1 WITH (NOLOCK)
+        ON a.IdmaeCentroCosto = a1.IdmaeCentroCosto
+        AND a1.bConOrdenProduccion = 1
+    INNER JOIN dbo.docNotaInventarioItem b WITH (NOLOCK)
+        ON a.IdDocumento_NotaInventario = b.IdDocumento_NotaInventario
+    INNER JOIN dbo.docOrdenProduccion c WITH (NOLOCK)
+        ON a.IdDocumento_OrdenProduccion = c.IdDocumento_OrdenProduccion
+    INNER JOIN dbo.docOrdenVenta g WITH (NOLOCK)
+        ON c.IdDocumento_Referencia = g.IdDocumento_OrdenVenta
+    WHERE a.IdtdDocumentoForm = 131
+        AND a.bDevolucion = 0
+        AND a.bDesactivado = 0
+        AND a.bAnulado = 0
+        AND a.IdmaeCentroCosto = 29
+    GROUP BY g.IdDocumento_OrdenVenta
+) AS cortado
+ON a.IdDocumento_OrdenVenta = cortado.IdDocumento_OrdenVenta
+LEFT JOIN (
+    SELECT 
+        g.IdDocumento_OrdenVenta,
+        SUM(b.dCantidadIng) AS COSIDO
+    FROM dbo.docNotaInventario a WITH (NOLOCK)
+    INNER JOIN dbo.maeCentroCosto a1 WITH (NOLOCK)
+        ON a.IdmaeCentroCosto = a1.IdmaeCentroCosto
+        AND a1.bConOrdenProduccion = 1
+    INNER JOIN dbo.docNotaInventarioItem b WITH (NOLOCK)
+        ON a.IdDocumento_NotaInventario = b.IdDocumento_NotaInventario
+    INNER JOIN dbo.docOrdenProduccion c WITH (NOLOCK)
+        ON a.IdDocumento_OrdenProduccion = c.IdDocumento_OrdenProduccion
+    INNER JOIN dbo.docOrdenVenta g WITH (NOLOCK)
+        ON c.IdDocumento_Referencia = g.IdDocumento_OrdenVenta
+    WHERE a.IdtdDocumentoForm = 131
+        AND a.bDevolucion = 0
+        AND a.bDesactivado = 0
+        AND a.bAnulado = 0
+        AND a.IdmaeCentroCosto = 47
+    GROUP BY g.IdDocumento_OrdenVenta
+) AS cosido
+ON a.IdDocumento_OrdenVenta = cosido.IdDocumento_OrdenVenta
+WHERE
+    a.IdtdDocumentoForm = 10
+    AND a.IdtdTipoVenta = 4
+    AND a.bAnulado = 0
+    --AND (CASE WHEN ISDATE(a.dtFechaEntrega) = --1 THEN CONVERT(DATE, a.dtFechaEntrega) ELSE --NULL END) BETWEEN '2024-08-01' AND --'2024-12-31' 
+    ) gg
+INNER JOIN 
+    (SELECT 
+    x.IdDocumento_OrdenVenta,
+	q0.FMINARM,
+	q0.FMAXARM,
+    q1.FMINTENID,
+    q1.FMAXTENID,
+    q2.FMINTELAPROB,
+    q2.FMAXTELAPROB,
+    q3.FMINCORTE,
+    q3.FMAXCORTE,
+    q4.FMINCOSIDO,
+    q4.FMAXCOSIDO
+FROM docOrdenVenta x
+LEFT JOIN (
+    SELECT 
+        x.IdDocumento_OrdenVenta, 
+        MIN(b.dtFechaEmision) AS FMINARM,
+		MAX(b.dtFechaEmision) AS FMAXARM
+    FROM docOrdenVentaItem a
+    INNER JOIN docOrdenProduccion b ON b.IdDocumento_Referencia = a.IdDocumento_OrdenVenta
+    INNER JOIN docOrdenVenta x ON a.IdDocumento_Referencia = x.IdDocumento_OrdenVenta
+   
+    WHERE b.IdtdDocumentoForm = 138 
+      AND b.IdtdDocumentoForm_Referencia = 152 
+      AND x.CoddocOrdenVenta IS NOT NULL
+      AND a.IdDocumento_Referencia > 0
+    GROUP BY x.IdDocumento_OrdenVenta
+) q0 ON x.IdDocumento_OrdenVenta = q0.IdDocumento_OrdenVenta
 
-    # [Previous sections remain the same]
+LEFT JOIN (
+    SELECT 
+        x.IdDocumento_OrdenVenta, 
+        MIN(e.dtFechaHoraFin) AS FMINTENID,
+        MAX(e.dtFechaHoraFin) AS FMAXTENID
+    FROM docOrdenVentaItem a
+    INNER JOIN docOrdenProduccion b ON b.IdDocumento_Referencia = a.IdDocumento_OrdenVenta
+    INNER JOIN docOrdenVenta x ON a.IdDocumento_Referencia = x.IdDocumento_OrdenVenta
+    INNER JOIN docRecetaOrdenProduccion d ON b.IdDocumento_OrdenProduccion = d.IdDocumento_OrdenProduccion
+    INNER JOIN docReceta e ON d.IdDocumento_Receta = e.IdDocumento_Receta
+    WHERE b.IdtdDocumentoForm = 138 
+      AND b.IdtdDocumentoForm_Referencia = 152 
+      AND x.CoddocOrdenVenta IS NOT NULL
+      AND a.IdDocumento_Referencia > 0
+    GROUP BY x.IdDocumento_OrdenVenta
+) q1 ON x.IdDocumento_OrdenVenta = q1.IdDocumento_OrdenVenta
+LEFT JOIN (
+    SELECT 
+        x.IdDocumento_OrdenVenta,  
+        MIN(b.FechaCierreAprobado) AS FMINTELAPROB,
+        MAX(b.FechaCierreAprobado) AS FMAXTELAPROB
+    FROM docOrdenVentaItem a
+    INNER JOIN docOrdenProduccion b ON b.IdDocumento_Referencia = a.IdDocumento_OrdenVenta
+    INNER JOIN docOrdenVenta x ON a.IdDocumento_Referencia = x.IdDocumento_OrdenVenta
+    INNER JOIN docOrdenProduccionRuta d ON b.IdDocumento_OrdenProduccion = d.IdDocumento_OrdenProduccion
+    WHERE b.IdtdDocumentoForm = 138 
+      AND b.IdtdDocumentoForm_Referencia = 152 
+      AND x.CoddocOrdenVenta IS NOT NULL
+      AND a.IdDocumento_Referencia > 0
+    GROUP BY x.IdDocumento_OrdenVenta
+) q2 ON x.IdDocumento_OrdenVenta = q2.IdDocumento_OrdenVenta
+LEFT JOIN (
+    SELECT 
+        g.IdDocumento_OrdenVenta,  
+        MIN(a.dtFechaRegistro) AS FMINCORTE,
+        MAX(a.dtFechaRegistro) AS FMAXCORTE
+    FROM dbo.docNotaInventario a WITH (NOLOCK)
+    INNER JOIN dbo.maeCentroCosto a1 WITH (NOLOCK) ON a.IdmaeCentroCosto = a1.IdmaeCentroCosto AND a1.bConOrdenProduccion = 1
+    INNER JOIN dbo.docNotaInventarioItem b WITH (NOLOCK) ON a.IdDocumento_NotaInventario = b.IdDocumento_NotaInventario AND b.dCantidadIng <> 0
+    INNER JOIN dbo.docOrdenProduccion c WITH (NOLOCK) ON a.IdDocumento_OrdenProduccion = c.IdDocumento_OrdenProduccion 
+	AND c.bAnulado = 0 AND c.IdtdDocumentoForm = 127
+    INNER JOIN dbo.docOrdenVenta g WITH (NOLOCK) ON c.IdDocumento_Referencia = g.IdDocumento_OrdenVenta
+    INNER JOIN dbo.docOrdenProduccionRuta d WITH (NOLOCK) ON a.IddocOrdenProduccionRuta = d.IddocOrdenProduccionRuta
+    INNER JOIN dbo.docOrdenProduccionItem e WITH (NOLOCK) ON c.IdDocumento_OrdenProduccion = e.IdDocumento_OrdenProduccion AND b.IdmaeItem_Inventario = e.IdmaeItem
+    INNER JOIN dbo.maeItemInventario f WITH (NOLOCK) ON b.IdmaeItem_Inventario = f.IdmaeItem_Inventario AND f.IdtdItemForm = 10
+    WHERE a.IdtdDocumentoForm = 131
+        AND a.bDevolucion = 0
+        AND a.bDesactivado = 0
+        AND a.bAnulado = 0
+        AND a.IdDocumento_OrdenProduccion <> 0
+        AND a.IdmaeCentroCosto = 29
+    GROUP BY g.IdDocumento_OrdenVenta
+) q3 ON x.IdDocumento_OrdenVenta = q3.IdDocumento_OrdenVenta
+LEFT JOIN (
+    SELECT 
+        g.IdDocumento_OrdenVenta,  
+        MIN(a.dtFechaRegistro) AS FMINCOSIDO,
+        MAX(a.dtFechaRegistro) AS FMAXCOSIDO
+    FROM dbo.docNotaInventario a WITH (NOLOCK)
+    INNER JOIN dbo.maeCentroCosto a1 WITH (NOLOCK) ON a.IdmaeCentroCosto = a1.IdmaeCentroCosto AND a1.bConOrdenProduccion = 1
+    INNER JOIN dbo.docNotaInventarioItem b WITH (NOLOCK) ON a.IdDocumento_NotaInventario = b.IdDocumento_NotaInventario AND b.dCantidadIng <> 0
+    INNER JOIN dbo.docOrdenProduccion c WITH (NOLOCK) ON a.IdDocumento_OrdenProduccion = c.IdDocumento_OrdenProduccion 
+	AND c.bAnulado = 0 AND c.IdtdDocumentoForm = 127
+    INNER JOIN dbo.docOrdenVenta g WITH (NOLOCK) ON c.IdDocumento_Referencia = g.IdDocumento_OrdenVenta
+    INNER JOIN dbo.docOrdenProduccionRuta d WITH (NOLOCK) ON a.IddocOrdenProduccionRuta = d.IddocOrdenProduccionRuta
+    INNER JOIN dbo.docOrdenProduccionItem e WITH (NOLOCK) ON c.IdDocumento_OrdenProduccion = e.IdDocumento_OrdenProduccion AND b.IdmaeItem_Inventario = e.IdmaeItem
+    INNER JOIN dbo.maeItemInventario f WITH (NOLOCK) ON b.IdmaeItem_Inventario = f.IdmaeItem_Inventario AND f.IdtdItemForm = 10
+    WHERE a.IdtdDocumentoForm = 131
+        AND a.bDevolucion = 0
+        AND a.bDesactivado = 0
+        AND a.bAnulado = 0
+        AND a.IdDocumento_OrdenProduccion <> 0
+        AND a.IdmaeCentroCosto = 47
+    GROUP BY g.IdDocumento_OrdenVenta
+) q4 ON x.IdDocumento_OrdenVenta = q4.IdDocumento_OrdenVenta
+WHERE x.CoddocOrdenVenta IS NOT NULL
+		and x.IdtdDocumentoForm=10 
+		and x.IdtdTipoVenta=4
+		and x.bAnulado=0
+    ) ff
+ON gg.IdDocumento_OrdenVenta = ff.IdDocumento_OrdenVenta
+WHERE gg.PEDIDO IN ({})""".format(','.join(['?' for _ in pedidos])) 
 
-    # Mostrar datos detallados combinados
-    st.subheader("Datos Detallados por OP")
-    
-    # Aplicar el formato personalizado
-    df_detallado['FECHA_ENVIO_FORMATTED'] = df_detallado['FECHA_ENVIO'].apply(safe_date_format)
-    df_detallado['FECHA_REGRESO_FORMATTED'] = df_detallado['FECHA_REGRESO'].apply(lambda x: safe_date_format(x) if pd.notnull(x) else '')
+    df = pd.read_sql(query, conn, params=tuple(pedidos))
+    conn.close()
+    return df
 
-    # Selector de filtros
-    col1, col2, col3 = st.columns(3)
+# New PostgreSQL query function
+def run_postgres_query(pedido):
+    conn = connect_postgres()
+    placeholders = ','.join(['%s' for _ in pedidos])
+    # Modify this query to get the specific dates and information you want
+    query = '''
+    SELECT 
+        "IdDocumento_OrdenVenta" as pedido,
+	"Fecha_Colocacion",
+	"Fecha_Entrega",
+ 
+        "star_armado",
+        "star_tenido",
+        "star_telaprob",
+        "star_corte",
+        "star_costura",
+        "finish_armado",
+        "finish_tenido",
+        "finish_telaprob",
+        "finish_corte",
+        "finish_costura"
+    FROM "docOrdenVenta"
+    WHERE "IdDocumento_OrdenVenta" IN ({})
+    '''.format(placeholders)
     
-    # Selector de Proveedor
-    with col1:
-        proveedores_disponibles = ['Todos'] + sorted(df_detallado['PROVEEDOR'].unique().tolist())
-        proveedor_seleccionado = st.selectbox('Filtrar por Proveedor:', proveedores_disponibles)
-    
-    # Selector de Pedido
-    with col2:
-        pedidos_disponibles = ['Todos'] + sorted(df_detallado['PEDIDO'].unique().tolist())
-        pedido_seleccionado = st.selectbox('Filtrar por Pedido:', pedidos_disponibles)
-    
-    # Selector de Estado de Retorno
-    with col3:
-        estado_retorno_opciones = ['Todos', 'Pendiente', 'Retornado']
-        estado_retorno_seleccionado = st.selectbox('Estado de Retorno:', estado_retorno_opciones)
-    
-    # Aplicar filtros
-    df_filtrado = df_detallado.copy()
-    if proveedor_seleccionado != 'Todos':
-        df_filtrado = df_filtrado[df_filtrado['PROVEEDOR'] == proveedor_seleccionado]
-    
-    if pedido_seleccionado != 'Todos':
-        df_filtrado = df_filtrado[df_filtrado['PEDIDO'] == pedido_seleccionado]
-    
-    if estado_retorno_seleccionado != 'Todos':
-        df_filtrado = df_filtrado[df_filtrado['ESTADO_RETORNO'] == estado_retorno_seleccionado]
+    df = pd.read_sql(query, conn, params=tuple(pedidos))
+    conn.close()
+    return df
 
-    # Seleccionar columnas para mostrar
-    columns_to_display = ['OP', 'PEDIDO', 'PROVEEDOR', 'FECHA_ENVIO_FORMATTED', 'FECHA_REGRESO_FORMATTED', 
-                          'UNIDADES_ENVIADAS', 'UNIDADES_REGRESADAS', 'SALDO', 'ESTADO_RETORNO']
-    df_display = df_filtrado[columns_to_display]
 
-    # Renombrar las columnas para la visualización
-    df_display = df_display.rename(columns={
-        'FECHA_ENVIO_FORMATTED': 'F_ENVIO',
-        'FECHA_REGRESO_FORMATTED': 'F_REGRESO',
-        'UNIDADES_ENVIADAS': 'U_ENV',
-        'UNIDADES_REGRESADAS': 'U_REG',
-        'PROVEEDOR': 'PROV',
-        'ESTADO_RETORNO': 'ESTADO'
-    })
 
-    st.dataframe(df_display.style.format({
-        'U_ENV': '{:,.0f}',
-        'U_REG': '{:,.0f}',
-        'SALDO': '{:,.0f}',
-        'F_ENVIO': '{}',
-        'F_REGRESO': '{}'
-    }))
 
-except Exception as e:
-    st.error(f"Ocurrió un error al cargar los datos: {str(e)}")
-    st.error("Detalles del error:")
-    st.exception(e)
+# Interfaz de usuario
+st.title("Progreso de Pedidos Consolidado")
+
+pedidos_input = st.text_input("Ingresa los números de pedido (separados por coma)")
+
+if st.button("Ejecutar Consulta"):
+    if pedidos_input:
+        try:
+            pedidos = [p.strip() for p in pedidos_input.split(',')]
+            
+            # Ejecutar consultas
+            df = run_query(pedidos)
+            df_postgres = run_postgres_query(pedidos)
+            
+            if df.empty:
+                st.warning("No se encontraron datos para estos pedidos en SQL Server.")
+            else:
+                # Mostrar resumen de datos
+                st.subheader("Resumen de Pedidos")
+                summary_df = pd.DataFrame({
+                    'Total Unidades': [df['UNID'].sum()],
+                    'Total KG': [df['KG_REQ'].sum()],
+                    'Promedio Días': [df['DIAS'].mean()],
+                    'Cantidad Pedidos': [len(df)]
+                })
+                st.dataframe(summary_df)
+                
+                # Mostrar datos detallados
+                st.subheader("Detalle por Pedido")
+                st.dataframe(df)
+		#st.dataframe(df_postgres)   
+                st.dataframe(df_postgres)
+                # Preparar datos para el Gantt
+                # Convertir todas las fechas a datetime de manera segura
+                date_columns = ['star_armado', 'star_tenido', 'star_telaprob', 'star_corte', 'star_costura',
+                              'finish_armado', 'finish_tenido', 'finish_telaprob', 'finish_corte', 'finish_costura']
+                
+                for col in date_columns:
+                    df_postgres[col] = pd.to_datetime(df_postgres[col], errors='coerce')
+
+                real_date_columns = ['FMINARM', 'FMAXARM', 'FMINTENID', 'FMAXTENID', 'FMINTELAPROB', 
+                                   'FMAXTELAPROB', 'FMINCORTE', 'FMAXCORTE', 'FMINCOSIDO', 'FMAXCOSIDO']
+                
+                for col in real_date_columns:
+                    df[col] = pd.to_datetime(df[col], errors='coerce')
+
+                # Crear DataFrame para el Gantt con manejo seguro de fechas
+                df_gantt = pd.DataFrame({
+                    'Proceso': ['ARMADO', 'TEÑIDO', 'TELA_APROB', 'CORTE', 'COSTURA']
+                })
+
+                # Agregar fechas de manera segura
+                for proceso, start_col, finish_col, start_real_col, finish_real_col in zip(
+                    df_gantt['Proceso'],
+                    ['star_armado', 'star_tenido', 'star_telaprob', 'star_corte', 'star_costura'],
+                    ['finish_armado', 'finish_tenido', 'finish_telaprob', 'finish_corte', 'finish_costura'],
+                    ['FMINARM', 'FMINTENID', 'FMINTELAPROB', 'FMINCORTE', 'FMINCOSIDO'],
+                    ['FMAXARM', 'FMAXTENID', 'FMAXTELAPROB', 'FMAXCORTE', 'FMAXCOSIDO']
+                ):
+                    df_gantt.loc[df_gantt['Proceso'] == proceso, 'Start'] = df_postgres[start_col].min()
+                    df_gantt.loc[df_gantt['Proceso'] == proceso, 'Finish'] = df_postgres[finish_col].max()
+                    df_gantt.loc[df_gantt['Proceso'] == proceso, 'Start Real'] = df[start_real_col].min()
+                    df_gantt.loc[df_gantt['Proceso'] == proceso, 'Finish Real'] = df[finish_real_col].max()
+
+                # Agregar avance promedio
+                progress_mapping = {
+                    'ARMADO': 'KG_ARMP',
+                    'TEÑIDO': 'KG_TENIDP',
+                    'TELA_APROB': 'KG_TELAPROBP',
+                    'CORTE': 'CORTADOP',
+                    'COSTURA': 'COSIDOP'
+                }
+
+                for proceso, col in progress_mapping.items():
+                    df_gantt.loc[df_gantt['Proceso'] == proceso, 'Avance Promedio'] = \
+                        df[col].str.rstrip('%').astype(float).mean()
+
+                # Crear gráfico Gantt
+                fig = px.timeline(df_gantt, x_start="Start", x_end="Finish", 
+                                y="Proceso", text="Avance Promedio")
+                
+                # Estilizar el gráfico
+                for trace in fig.data:
+                    trace.marker.color = 'lightsteelblue'
+                
+                # Agregar marcadores de fechas reales
+                fig.add_trace(go.Scatter(
+                    x=df_gantt['Start Real'],
+                    y=df_gantt['Proceso'],
+                    mode='markers',
+                    marker=dict(symbol='triangle-up', size=10, color='black'),
+                    name='Start Real'
+                ))
+                
+                fig.add_trace(go.Scatter(
+                    x=df_gantt['Finish Real'],
+                    y=df_gantt['Proceso'],
+                    mode='markers',
+                    marker=dict(symbol='triangle-down', size=10, color='red'),
+                    name='Finish Real'
+                ))
+                
+                # Agregar líneas verticales con manejo seguro de fechas
+                min_fecha_colocacion = pd.to_datetime(df['F_EMISION']).min()
+                max_fecha_entrega = pd.to_datetime(df['F_ENTREGA']).max()
+                fecha_actual = pd.Timestamp(datetime.now())
+                
+                if pd.notna(min_fecha_colocacion):
+                    fig.add_vline(x=min_fecha_colocacion, line_dash="dash", line_color="green",
+                                annotation_text="Fecha Emisión Min")
+                
+                if pd.notna(max_fecha_entrega):
+                    fig.add_vline(x=max_fecha_entrega, line_dash="dash", line_color="red",
+                                annotation_text="Fecha Entrega Max")
+                
+                fig.add_vline(x=fecha_actual, line_dash="dash", line_color="blue",
+                            annotation_text="Fecha Actual")
+                
+                # Actualizar diseño
+                fig.update_layout(
+                    title=f"Gantt Consolidado - {len(pedidos)} Pedidos",
+                    height=400,
+                    showlegend=True
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+                
+        except Exception as e:
+            st.error(f"Error al ejecutar la consulta: {str(e)}")
+    else:
+        st.warning("Por favor ingresa al menos un número de pedido.")
+       
