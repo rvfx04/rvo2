@@ -394,7 +394,7 @@ if st.button("Ejecutar Consulta"):
                 # Mostrar resumen de datos
                 st.subheader("Resumen de Pedidos")
                 summary_df = pd.DataFrame({
-                    'Total Unidades': [df['UNID'].sum()],
+                    'Total Unidades': [df['UNID'].iloc(2)],
                     'Total KG': [df['KG_REQ'].sum()],
                     'Promedio Días': [df['DIAS'].mean()],
                     'Cantidad Pedidos': [len(df)-1]
