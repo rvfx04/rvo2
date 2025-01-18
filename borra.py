@@ -409,7 +409,7 @@ if st.button("Ejecutar Consulta"):
                 st.dataframe(df_postgres)
                 
                 # Procesar los datos para el gráfico de Gantt
-                f_emision = pd.to_datetime(df['F_EMISION'].iloc[2])
+                f_emision = pd.to_datetime(df['F_EMISION'].iloc[n])
                 #dias = df['DIAS'].iloc[0]
 
                 # Cálculo de las fechas de inicio y fin
