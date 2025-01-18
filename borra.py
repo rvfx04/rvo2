@@ -402,10 +402,10 @@ if st.button("Ejecutar Consulta"):
                 st.dataframe(summary_df)
                 n = len(df)-1
                 # Mostrar datos detallados con resumen
-                st.subheader("Detalle por Pedido (SQL Server)")
+                st.subheader("Detalle por Pedido")
                 st.dataframe(df)
                 
-                st.subheader("Detalle por Pedido (PostgreSQL)")
+                st.subheader("Info Plan")
                 st.dataframe(df_postgres)
                 
                 # Procesar los datos para el gráfico de Gantt
