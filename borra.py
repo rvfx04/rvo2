@@ -397,7 +397,7 @@ if st.button("Ejecutar Consulta"):
                     'Total Unidades': [df['UNID'].sum()],
                     'Total KG': [df['KG_REQ'].sum()],
                     'Promedio Días': [df['DIAS'].mean()],
-                    'Cantidad Pedidos': [len(df)]
+                    'Cantidad Pedidos': [len(df)-1]
                 })
                 st.dataframe(summary_df)
                 #n = len(df)
