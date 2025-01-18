@@ -400,7 +400,7 @@ if st.button("Ejecutar Consulta"):
                     'Cantidad Pedidos': [len(df)]
                 })
                 st.dataframe(summary_df)
-                
+                n = len(df)-1
                 # Mostrar datos detallados con resumen
                 st.subheader("Detalle por Pedido (SQL Server)")
                 st.dataframe(df)
