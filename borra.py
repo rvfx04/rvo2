@@ -30,7 +30,80 @@ def connect_postgres():
     )
     return connection
 
+# Agregar estas funciones después de connect_postgres():
 
+def add_summary_row_sql(df):
+    # Create a summary row
+    summary = pd.Series({
+        'PEDIDO': 'RESUMEN',
+        'F_EMISION': df['F_EMISION'].min(),
+        'F_ENTREGA': df['F_ENTREGA'].min(),
+        'DIAS': None,  # Not applicable for summary
+        'CLIENTE': 'TOTAL',
+        'PO': 'TOTAL',
+        'KG_REQ': df['KG_REQ'].sum(),
+        'UNID': df['UNID'].sum(),
+    })
+    
+    # Handle percentage columns with weighted averages
+    def calculate_weighted_percentage(row):
+        kg_req = float(row['KG_REQ'])
+        return kg_req if not pd.isna(kg_req) else 0
+    
+    total_kg = df['KG_REQ'].sum()
+    
+    # Calculate weighted percentages for KG related columns
+    for col in ['KG_ARMP', 'KG_TENIDP', 'KG_TELAPROBP']:
+        weighted_sum = sum(
+            float(str(row[col]).rstrip('%')) * calculate_weighted_percentage(row)
+            for _, row in df.iterrows()
+        )
+        summary[col] = f"{(weighted_sum / total_kg if total_kg > 0 else 0):.0f}%"
+    
+    # Calculate weighted percentages for unit related columns
+    total_units = df['UNID'].sum()
+    for col in ['PROGP', 'CORTADOP', 'COSIDOP']:
+        weighted_sum = sum(
+            float(str(row[col]).rstrip('%')) * row['UNID']
+            for _, row in df.iterrows()
+        )
+        summary[col] = f"{(weighted_sum / total_units if total_units > 0 else 0):.0f}%"
+    
+    # Handle date columns
+    min_date_cols = ['FMINARM', 'FMINTENID', 'FMINTELAPROB', 'FMINCORTE', 'FMINCOSIDO']
+    max_date_cols = ['FMAXARM', 'FMAXTENID', 'FMAXTELAPROB', 'FMAXCORTE', 'FMAXCOSIDO']
+    
+    for col in min_date_cols:
+        summary[col] = df[col].min()
+    
+    for col in max_date_cols:
+        summary[col] = df[col].max()
+    
+    # Append summary row to dataframe
+    df_with_summary = pd.concat([df, pd.DataFrame([summary])], ignore_index=True)
+    return df_with_summary
+
+def add_summary_row_postgres(df):
+    # Create a summary row
+    summary = pd.Series({
+        'pedido': 'RESUMEN',
+        'Fecha_Colocacion': df['Fecha_Colocacion'].min(),
+        'Fecha_Entrega': df['Fecha_Entrega'].min(),
+    })
+    
+    # Handle start dates (minimum)
+    start_cols = ['star_armado', 'star_tenido', 'star_telaprob', 'star_corte', 'star_costura']
+    for col in start_cols:
+        summary[col] = df[col].min()
+    
+    # Handle finish dates (maximum)
+    finish_cols = ['finish_armado', 'finish_tenido', 'finish_telaprob', 'finish_corte', 'finish_costura']
+    for col in finish_cols:
+        summary[col] = df[col].max()
+    
+    # Append summary row to dataframe
+    df_with_summary = pd.concat([df, pd.DataFrame([summary])], ignore_index=True)
+    return df_with_summary
 
 # Función para ejecutar la consulta SQL
 def run_query(pedidos):
@@ -314,6 +387,10 @@ if st.button("Ejecutar Consulta"):
             if df.empty:
                 st.warning("No se encontraron datos para estos pedidos en SQL Server.")
             else:
+                # Add summary rows to both dataframes
+                df_with_summary = add_summary_row_sql(df)
+                df_postgres_with_summary = add_summary_row_postgres(df_postgres)
+                
                 # Mostrar resumen de datos
                 st.subheader("Resumen de Pedidos")
                 summary_df = pd.DataFrame({
@@ -324,11 +401,19 @@ if st.button("Ejecutar Consulta"):
                 })
                 st.dataframe(summary_df)
                 
-                # Mostrar datos detallados
-                st.subheader("Detalle por Pedido")
-                st.dataframe(df)
-		#st.dataframe(df_postgres)   
-                st.dataframe(df_postgres)
+                # Mostrar datos detallados con resumen
+                st.subheader("Detalle por Pedido (SQL Server)")
+                st.dataframe(df_with_summary)
+                
+                st.subheader("Detalle por Pedido (PostgreSQL)")
+                st.dataframe(df_postgres_with_summary)
+                
+                # El resto del código para las visualizaciones permanece igual
+                
+        except Exception as e:
+            st.error(f"Error al ejecutar la consulta: {str(e)}")
+    else:
+        st.warning("Por favor ingresa al menos un número de pedido.")
                 # Preparar datos para el Gantt
                 # Convertir todas las fechas a datetime de manera segura
                 date_columns = ['star_armado', 'star_tenido', 'star_telaprob', 'star_corte', 'star_costura',
