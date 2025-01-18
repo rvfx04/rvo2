@@ -414,6 +414,4 @@ if st.button("Ejecutar Consulta"):
             st.error(f"Error al ejecutar la consulta: {str(e)}")
     else:
         st.warning("Por favor ingresa al menos un número de pedido.")
-                # Preparar datos para el Gantt
-                # Convertir todas las fechas a datetime de manera segura
          
