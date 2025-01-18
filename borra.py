@@ -400,7 +400,7 @@ if st.button("Ejecutar Consulta"):
                     'Cantidad Pedidos': [len(df)-1]
                 })
                 st.dataframe(summary_df)
-                #n = len(df)
+                n = len(df)-1
                 # Mostrar datos detallados con resumen
                 st.subheader("Detalle por Pedido (SQL Server)")
                 st.dataframe(df)
@@ -409,7 +409,7 @@ if st.button("Ejecutar Consulta"):
                 st.dataframe(df_postgres)
                 
                 # Procesar los datos para el gráfico de Gantt
-                f_emision = pd.to_datetime(df['F_EMISION'].iloc[2])
+                f_emision = pd.to_datetime(df['F_EMISION'].iloc[n])
                 #dias = df['DIAS'].iloc[0]
 
                 # Cálculo de las fechas de inicio y fin
@@ -441,7 +441,7 @@ if st.button("Ejecutar Consulta"):
                     'Finish Real': [pd.to_datetime(df['FMAXARM'].iloc[2]), pd.to_datetime(df['FMAXTENID'].iloc[2]), 
                                     pd.to_datetime(df['FMAXTELAPROB'].iloc[2]), pd.to_datetime(df['FMAXCORTE'].iloc[2]), 
                                     pd.to_datetime(df['FMAXCOSIDO'].iloc[2])],
-                    'Avance': [df['KG_ARMP'].iloc[2], df['KG_TENIDP'].iloc[2], df['KG_TELAPROBP'].iloc[2], 
+                    'Avance': [df['KG_ARMP'].iloc[n], df['KG_TENIDP'].iloc[2], df['KG_TELAPROBP'].iloc[2], 
                                df['CORTADOP'].iloc[2], df['COSIDOP'].iloc[2]]
                 })
 
