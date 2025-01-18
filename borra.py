@@ -388,8 +388,8 @@ if st.button("Ejecutar Consulta"):
                 st.warning("No se encontraron datos para estos pedidos en SQL Server.")
             else:
                 # Add summary rows to both dataframes
-                df_with_summary = add_summary_row_sql(df)
-                df_postgres_with_summary = add_summary_row_postgres(df_postgres)
+                df = add_summary_row_sql(df)
+                df_postgres = add_summary_row_postgres(df_postgres)
                 
                 # Mostrar resumen de datos
                 st.subheader("Resumen de Pedidos")
@@ -403,10 +403,10 @@ if st.button("Ejecutar Consulta"):
                 
                 # Mostrar datos detallados con resumen
                 st.subheader("Detalle por Pedido (SQL Server)")
-                st.dataframe(df_with_summary)
+                st.dataframe(df)
                 
                 st.subheader("Detalle por Pedido (PostgreSQL)")
-                st.dataframe(df_postgres_with_summary)
+                st.dataframe(df_postgres)
                 
                 # El resto del código para las visualizaciones permanece igual
                 
