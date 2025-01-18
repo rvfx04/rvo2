@@ -375,6 +375,109 @@ st.title("Progreso de Pedidos Consolidado")
 
 pedidos_input = st.text_input("Ingresa los números de pedido (separados por coma)")
 
+# Función para crear el gráfico de Gantt para un pedido específico
+def create_gantt_chart(df_row, df_postgres_row):
+    # Crear DataFrame para el gráfico de Gantt
+    df_gantt = pd.DataFrame({
+        'Proceso': ['ARMADO', 'TEÑIDO', 'TELA_APROB', 'CORTE', 'COSTURA'],
+        'Start': [
+            pd.to_datetime(df_postgres_row['star_armado']),
+            pd.to_datetime(df_postgres_row['star_tenido']),
+            pd.to_datetime(df_postgres_row['star_telaprob']),
+            pd.to_datetime(df_postgres_row['star_corte']),
+            pd.to_datetime(df_postgres_row['star_costura'])
+        ],
+        'Finish': [
+            pd.to_datetime(df_postgres_row['finish_armado']),
+            pd.to_datetime(df_postgres_row['finish_tenido']),
+            pd.to_datetime(df_postgres_row['finish_telaprob']),
+            pd.to_datetime(df_postgres_row['finish_corte']),
+            pd.to_datetime(df_postgres_row['finish_costura'])
+        ],
+        'Start Real': [
+            pd.to_datetime(df_row['FMINARM']),
+            pd.to_datetime(df_row['FMINTENID']),
+            pd.to_datetime(df_row['FMINTELAPROB']),
+            pd.to_datetime(df_row['FMINCORTE']),
+            pd.to_datetime(df_row['FMINCOSIDO'])
+        ],
+        'Finish Real': [
+            pd.to_datetime(df_row['FMAXARM']),
+            pd.to_datetime(df_row['FMAXTENID']),
+            pd.to_datetime(df_row['FMAXTELAPROB']),
+            pd.to_datetime(df_row['FMAXCORTE']),
+            pd.to_datetime(df_row['FMAXCOSIDO'])
+        ],
+        'Avance': [
+            df_row['KG_ARMP'],
+            df_row['KG_TENIDP'],
+            df_row['KG_TELAPROBP'],
+            df_row['CORTADOP'],
+            df_row['COSIDOP']
+        ]
+    })
+
+    # Crear el gráfico de Gantt
+    fig = px.timeline(df_gantt, x_start="Start", x_end="Finish", y="Proceso", text="Avance")
+
+    # Cambiar el color de las barras
+    for trace in fig.data:
+        trace.marker.color = 'lightsteelblue'
+
+    # Fechas importantes
+    fecha_colocacion = pd.to_datetime(df_row['F_EMISION'])
+    fecha_entrega = pd.to_datetime(df_row['F_ENTREGA'])
+    fecha_actual = datetime.now()
+    inicial = pd.to_datetime(df_postgres_row['Fecha_Colocacion'])
+    fin = pd.to_datetime(df_postgres_row['Fecha_Entrega'])
+
+    # Mostrar las etiquetas del eje X cada 7 días
+    fig.update_xaxes(tickmode='linear', tick0=fecha_colocacion.strftime('%Y-%m-%d'), dtick=7 * 24 * 60 * 60 * 1000)
+    fig.update_yaxes(autorange="reversed")
+
+    # Agregar marcadores de inicio y fin reales
+    fig.add_trace(go.Scatter(
+        x=df_gantt['Start Real'],
+        y=df_gantt['Proceso'],
+        mode='markers',
+        marker=dict(symbol='triangle-up', size=10, color='black'),
+        name='Start Real'
+    ))
+    fig.add_trace(go.Scatter(
+        x=df_gantt['Finish Real'],
+        y=df_gantt['Proceso'],
+        mode='markers',
+        marker=dict(symbol='triangle-down', size=10, color='red'),
+        name='Finish Real'
+    ))
+
+    # Agregar líneas verticales y anotaciones
+    for fecha, color, texto in [
+        (fecha_colocacion, "green", "Emision"),
+        (fecha_entrega, "red", "Entrega"),
+        (fecha_actual, "blue", "Actual"),
+        (inicial, "green", "Inicio"),
+        (fin, "red", "Fin")
+    ]:
+        fig.add_shape(
+            type="line",
+            x0=fecha,
+            y0=0,
+            x1=fecha,
+            y1=len(df_gantt),
+            line=dict(color=color, width=2, dash="dash")
+        )
+        fig.add_annotation(
+            x=fecha,
+            y=len(df_gantt)/2,
+            text=f"{texto}<br>{fecha.strftime('%b %d')}",
+            showarrow=True,
+            arrowhead=1
+        )
+
+    return fig
+
+# Modificar la parte del botón "Ejecutar Consulta" para incluir los gráficos de Gantt
 if st.button("Ejecutar Consulta"):
     if pedidos_input:
         try:
@@ -408,10 +511,20 @@ if st.button("Ejecutar Consulta"):
                 st.subheader("Detalle por Pedido (PostgreSQL)")
                 st.dataframe(df_postgres_with_summary)
                 
-                # El resto del código para las visualizaciones permanece igual
+                # Crear gráficos de Gantt para cada pedido
+                for index, row in df.iterrows():
+                    if row['PEDIDO'] != 'RESUMEN':  # Excluir la fila de resumen
+                        st.title(f"Pedido: {row['PEDIDO']}")
+                        st.write(f"Cliente: {row['CLIENTE']}")
+                        
+                        # Encontrar la fila correspondiente en df_postgres
+                        postgres_row = df_postgres[df_postgres['pedido'] == row['PEDIDO']].iloc[0]
+                        
+                        # Crear y mostrar el gráfico de Gantt
+                        fig = create_gantt_chart(row, postgres_row)
+                        st.plotly_chart(fig)
                 
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {str(e)}")
     else:
         st.warning("Por favor ingresa al menos un número de pedido.")
-         
