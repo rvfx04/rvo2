@@ -414,19 +414,19 @@ if st.button("Ejecutar Consulta"):
 
                 # Cálculo de las fechas de inicio y fin
                 
-                start_armado = pd.to_datetime(df_postgres['star_armado'].iloc[2]) 
+                start_armado = pd.to_datetime(df_postgres['star_armado'].iloc[n]) 
 		  
-                start_tenido = pd.to_datetime(df_postgres['star_tenido'].iloc[2])
-                start_telaprob = pd.to_datetime(df_postgres['star_telaprob'].iloc[2])
-                start_corte = pd.to_datetime(df_postgres['star_corte'].iloc[2])
-                start_costura = pd.to_datetime(df_postgres['star_costura'].iloc[2])
-                finish_armado = pd.to_datetime(df_postgres['finish_armado'].iloc[2])
-                finish_tenido = pd.to_datetime(df_postgres['finish_tenido'].iloc[2])
-                finish_telaprob = pd.to_datetime(df_postgres['finish_telaprob'].iloc[2])
-                finish_corte = pd.to_datetime(df_postgres['finish_corte'].iloc[2])
-                finish_costura = pd.to_datetime(df_postgres['finish_costura'].iloc[2])
-                inicial = pd.to_datetime(df_postgres['Fecha_Colocacion'].iloc[2])
-                fin = pd.to_datetime(df_postgres['Fecha_Entrega'].iloc[2]) 
+                start_tenido = pd.to_datetime(df_postgres['star_tenido'].iloc[n])
+                start_telaprob = pd.to_datetime(df_postgres['star_telaprob'].iloc[n])
+                start_corte = pd.to_datetime(df_postgres['star_corte'].iloc[n])
+                start_costura = pd.to_datetime(df_postgres['star_costura'].iloc[n])
+                finish_armado = pd.to_datetime(df_postgres['finish_armado'].iloc[n])
+                finish_tenido = pd.to_datetime(df_postgres['finish_tenido'].iloc[n])
+                finish_telaprob = pd.to_datetime(df_postgres['finish_telaprob'].iloc[n])
+                finish_corte = pd.to_datetime(df_postgres['finish_corte'].iloc[n])
+                finish_costura = pd.to_datetime(df_postgres['finish_costura'].iloc[n])
+                inicial = pd.to_datetime(df_postgres['Fecha_Colocacion'].iloc[n])
+                fin = pd.to_datetime(df_postgres['Fecha_Entrega'].iloc[n]) 
 		
 
                  
@@ -435,14 +435,14 @@ if st.button("Ejecutar Consulta"):
                     'Proceso': ['ARMADO', 'TEÑIDO', 'TELA_APROB', 'CORTE', 'COSTURA'],
                     'Start': [start_armado, start_tenido, start_telaprob, start_corte, start_costura],
                     'Finish': [finish_armado, finish_tenido, finish_telaprob, finish_corte, finish_costura],
-                    'Start Real': [pd.to_datetime(df['FMINARM'].iloc[2]), pd.to_datetime(df['FMINTENID'].iloc[2]), 
-                                   pd.to_datetime(df['FMINTELAPROB'].iloc[2]), pd.to_datetime(df['FMINCORTE'].iloc[2]), 
-                                   pd.to_datetime(df['FMINCOSIDO'].iloc[2])],
-                    'Finish Real': [pd.to_datetime(df['FMAXARM'].iloc[2]), pd.to_datetime(df['FMAXTENID'].iloc[2]), 
-                                    pd.to_datetime(df['FMAXTELAPROB'].iloc[2]), pd.to_datetime(df['FMAXCORTE'].iloc[2]), 
-                                    pd.to_datetime(df['FMAXCOSIDO'].iloc[2])],
-                    'Avance': [df['KG_ARMP'].iloc[n], df['KG_TENIDP'].iloc[2], df['KG_TELAPROBP'].iloc[2], 
-                               df['CORTADOP'].iloc[2], df['COSIDOP'].iloc[2]]
+                    'Start Real': [pd.to_datetime(df['FMINARM'].iloc[n]), pd.to_datetime(df['FMINTENID'].iloc[n]), 
+                                   pd.to_datetime(df['FMINTELAPROB'].iloc[n]), pd.to_datetime(df['FMINCORTE'].iloc[n]), 
+                                   pd.to_datetime(df['FMINCOSIDO'].iloc[n])],
+                    'Finish Real': [pd.to_datetime(df['FMAXARM'].iloc[n]), pd.to_datetime(df['FMAXTENID'].iloc[n]), 
+                                    pd.to_datetime(df['FMAXTELAPROB'].iloc[n]), pd.to_datetime(df['FMAXCORTE'].iloc[n]), 
+                                    pd.to_datetime(df['FMAXCOSIDO'].iloc[n])],
+                    'Avance': [df['KG_ARMP'].iloc[n], df['KG_TENIDP'].iloc[n], df['KG_TELAPROBP'].iloc[n], 
+                               df['CORTADOP'].iloc[n], df['COSIDOP'].iloc[n]]
                 })
 
                 # Crear el gráfico de Gantt
