@@ -392,14 +392,14 @@ if st.button("Ejecutar Consulta"):
                 df_postgres = add_summary_row_postgres(df_postgres)
                 
                 # Mostrar resumen de datos
-                st.subheader("Resumen de Pedidos")
+                #st.subheader("Resumen de Pedidos")
                 summary_df = pd.DataFrame({
-                    'Total Unidades': [df['UNID'].iloc(2)],
+                    'Total Unidades': [df['UNID'].sum()],
                     'Total KG': [df['KG_REQ'].sum()],
                     'Promedio Días': [df['DIAS'].mean()],
                     'Cantidad Pedidos': [len(df)-1]
                 })
-                st.dataframe(summary_df)
+                #st.dataframe(summary_df)
                 n = len(df)-1
                 # Mostrar datos detallados con resumen
                 st.subheader("Detalle por Pedido")
