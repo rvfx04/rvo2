@@ -448,10 +448,10 @@ if st.button("Ejecutar Consulta"):
                 # Crear el gráfico de Gantt
                 fig = px.timeline(df_gantt, x_start="Start", x_end="Finish", y="Proceso", text="Avance")
                 # Agregar líneas verticales cada dos días
-                fecha_inicio = min(fecha_colocacion, 
+                fecha_inicio = min(inicial, 
                     df_gantt['Start'].min(), 
                     df_gantt['Start Real'].min())
-                fecha_fin = max(fecha_entrega, 
+                fecha_fin = max(fin, 
                     df_gantt['Finish'].max(), 
                     df_gantt['Finish Real'].max())
                 dias_totales = (fecha_fin - fecha_inicio).days
