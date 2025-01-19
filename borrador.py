@@ -447,64 +447,65 @@ if st.button("Ejecutar Consulta"):
 
                 # Crear el gráfico de Gantt
                 # Reemplazar el px.timeline con este código:
-		fig = go.Figure()
-		
-		for idx, row in df_gantt.iterrows():
-		    # Convertir el porcentaje de texto a número
-		    avance = float(row['Avance'].rstrip('%'))
-		    
-		    # Calcular la fecha intermedia basada en el avance
-		    fecha_avance = row['Start'] + (row['Finish'] - row['Start']) * (avance/100)
-		    
-		    # Agregar barra de progreso completado (con color)
-		    if avance > 0:
-		        fig.add_trace(go.Bar(
-		            x=[fecha_avance - row['Start']],  # Duración del avance
-		            y=[row['Proceso']],
-		            base=[row['Start']],  # Inicio de la barra
-		            orientation='h',
-		            marker_color='rgb(65, 105, 225)',  # Azul royal para la parte completada
-		            name='Completado',
-		            showlegend=False,
-		            text=f"{avance}%",
-		            textposition='inside',
-		        ))
-		    
-		    # Agregar barra de progreso pendiente
-		    if avance < 100:
-		        fig.add_trace(go.Bar(
-		            x=[(row['Finish'] - fecha_avance)],  # Duración restante
-		            y=[row['Proceso']],
-		            base=[fecha_avance],  # Inicio desde donde termina la parte completada
-		            orientation='h',
-		            marker_color='lightsteelblue',  # Color más claro para la parte pendiente
-		            name='Pendiente',
-		            showlegend=False,
-		        ))
-		
-		# Configuración del layout
-		fig.update_layout(
-		    barmode='stack',
-		    height=400,
-		    showlegend=False,
-		    xaxis_title="",
-		    yaxis_title="",
-		    xaxis_type="date",
-		    bargap=0.2,
-		)
-		
-		# Actualizar el formato del eje X como lo teníamos antes
-		fig.update_xaxes(
-		    tickmode='linear',
-		    tick0=tick0_date,
-		    dtick=24 * 60 * 60 * 1000,
-		    tickformat='%d\n%b\n%Y',
-		    tickangle=0,
-		    tickfont=dict(size=10)
-		)
-		
-		# Invertir el eje Y
-		fig.update_yaxes(autorange="reversed")
+                fig = go.Figure()
+
+                for idx, row in df_gantt.iterrows():
+                    # Convertir el porcentaje de texto a número
+                    avance = float(row['Avance'].rstrip('%'))
+                    
+                    # Calcular la fecha intermedia basada en el avance
+                    fecha_avance = row['Start'] + (row['Finish'] - row['Start']) * (avance/100)
+                    
+                    # Agregar barra de progreso completado (con color)
+                    if avance > 0:
+                        fig.add_trace(go.Bar(
+                            x=[fecha_avance - row['Start']],  # Duración del avance
+                            y=[row['Proceso']],
+                            base=[row['Start']],  # Inicio de la barra
+                            orientation='h',
+                            marker_color='rgb(65, 105, 225)',  # Azul royal para la parte completada
+                            name='Completado',
+                            showlegend=False,
+                            text=f"{avance}%",
+                            textposition='inside',
+                        ))
+                    
+                    # Agregar barra de progreso pendiente
+                    if avance < 100:
+                        fig.add_trace(go.Bar(
+                            x=[(row['Finish'] - fecha_avance)],  # Duración restante
+                            y=[row['Proceso']],
+                            base=[fecha_avance],  # Inicio desde donde termina la parte completada
+                            orientation='h',
+                            marker_color='lightsteelblue',  # Color más claro para la parte pendiente
+                            name='Pendiente',
+                            showlegend=False,
+                        ))
+
+                # Configuración del layout
+                fig.update_layout(
+                    barmode='stack',
+                    height=400,
+                    showlegend=False,
+                    xaxis_title="",
+                    yaxis_title="",
+                    xaxis_type="date",
+                    bargap=0.2,
+                )
+
+                # Actualizar el formato del eje X como lo teníamos antes
+                tick0_date = f_emision.strftime('%Y-%m-%d')
+                fig.update_xaxes(
+                    tickmode='linear',
+                    tick0=tick0_date,
+                    dtick=24 * 60 * 60 * 1000,
+                    tickformat='%d\n%b\n%Y',
+                    tickangle=0,
+                    tickfont=dict(size=10)
+                )
+
+                # Invertir el eje Y
+                fig.update_yaxes(autorange="reversed")
 
                 # Agregar las barras de las fechas reales
                 fig.add_trace(go.Scatter(
