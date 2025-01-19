@@ -479,7 +479,8 @@ if st.button("Ejecutar Consulta"):
 
                 # Mostrar las etiquetas del eje X cada 7 días
                 tick0_date = f_emision.strftime('%Y-%m-%d')
-                fig.update_xaxes(tickmode='linear', tick0=tick0_date, dtick=2 * 24 * 60 * 60 * 1000,tickformat='%d\n%b\n%y',tickangle=0,tickfont=dict(size=10))
+                fig.update_xaxes(tickmode='linear', tick0=tick0_date, dtick=2 * 24 * 60 * 60 * 1000,tickformat='%d\n%b\n%y',
+		tickangle=0,tickfont=dict(size=10))
 
                 # Ajustar el diseño del gráfico
                 fig.update_yaxes(autorange="reversed")
