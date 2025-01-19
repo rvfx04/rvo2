@@ -479,7 +479,7 @@ if st.button("Ejecutar Consulta"):
 
                 # Mostrar las etiquetas del eje X cada 7 días
                 tick0_date = f_emision.strftime('%Y-%m-%d')
-                fig.update_xaxes(tickmode='linear', tick0=tick0_date, dtick=2 * 24 * 60 * 60 * 1000,tickformat='%d\n%b\n%y',
+                fig.update_xaxes(tickmode='linear', tick0=tick0_date, dtick=2 * 24 * 60 * 60 * 1000,tickformat='%d\n%b\n%Y',
 		tickangle=0,tickfont=dict(size=10))
 
                 # Ajustar el diseño del gráfico
@@ -521,7 +521,7 @@ if st.button("Ejecutar Consulta"):
                 # Para la fecha de colocación
                 fig.add_annotation(
                     x=fecha_colocacion,
-                    y=len(df_gantt)/2,
+                    y=len(df_gantt)/4,
                     text="Emision<br>" + fecha_colocacion.strftime('%b %d'),
                     showarrow=True,
                     arrowhead=1
@@ -538,7 +538,7 @@ if st.button("Ejecutar Consulta"):
 		# Para la fecha de entrega
                 fig.add_annotation(
                     x=fecha_entrega,
-                    y=len(df_gantt)/2,
+                    y=len(df_gantt)/4,
                     text="Entrega<br>" + fecha_entrega.strftime('%b %d'),
                     showarrow=True,
                     arrowhead=1
