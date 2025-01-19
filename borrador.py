@@ -447,30 +447,7 @@ if st.button("Ejecutar Consulta"):
 
                 # Crear el gráfico de Gantt
                 fig = px.timeline(df_gantt, x_start="Start", x_end="Finish", y="Proceso", text="Avance")
-		# Agregar líneas verticales cada dos días
-		fecha_inicio = min(fecha_colocacion, 
-		                  df_gantt['Start'].min(), 
-		                  df_gantt['Start Real'].min())
-		fecha_fin = max(fecha_entrega, 
-		                df_gantt['Finish'].max(), 
-		                df_gantt['Finish Real'].max())
-		dias_totales = (fecha_fin - fecha_inicio).days
 		
-		for i in range(0, dias_totales + 1, 2):
-		    fecha_linea = fecha_inicio + timedelta(days=i)
-		    fig.add_shape(
-		        type="line",
-		        x0=fecha_linea,
-		        y0=0,
-		        x1=fecha_linea,
-		        y1=len(df_gantt),
-		        line=dict(
-		            color="lightgray",
-		            width=1,
-		            dash="dot"
-		        ),
-		        layer="below"  # Esto asegura que las líneas estén detrás de las barras del Gantt
-		    )
 	        # Cambiar el color de las barras
 		
                 for trace in fig.data:
