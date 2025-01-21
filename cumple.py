@@ -21,7 +21,7 @@ today = datetime.today().date()
 
 # Sidebar para la selección de fechas y área
 start_date = st.sidebar.date_input("fecha de inicio", value=today)
-end_date = st.sidebar.date_input("fecha de fin", value=pd.to_datetime('2024-12-31'))
+end_date = st.sidebar.date_input("fecha de fin", value=pd.to_datetime('2025-12-31'))
 
 
 # Consulta SQL para obtener datos filtrados
@@ -35,7 +35,7 @@ FROM (
            b.nommaecentrocosto AS AREA,
            c.nommaecargo AS CARGO,a.IdmaeCentroCosto,
            DAY(a.dtfechanacimiento) AS dia,
-           '2024' AS año,
+           '2025' AS año,
            MONTH(a.dtfechanacimiento) AS mes,
            a.bdesactivado
     FROM maeanexotrabajador a
