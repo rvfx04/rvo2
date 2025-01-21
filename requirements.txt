@@ -21,3 +21,4 @@ PyPDF2
 Pillow
 PyMuPDF
 psycopg2-binary
+streamlit-plotly-events
