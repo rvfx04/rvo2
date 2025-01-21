@@ -445,8 +445,9 @@ if st.button("Ejecutar Consulta"):
                                df['CORTADOP'].iloc[n], df['COSIDOP'].iloc[n]]
                 })
 
-                # Crear el gráfico de Gantt
+                # Crear el gráfico de Gantt con interactividad
                 fig = px.timeline(df_gantt, x_start="Start", x_end="Finish", y="Proceso", text="Avance")
+                
                 # Configurar la interactividad
                 fig.update_traces(
                     customdata=df_gantt['Proceso'],  # Datos que queremos pasar al evento de clic
@@ -455,6 +456,12 @@ if st.button("Ejecutar Consulta"):
                                 "Fin: %{x[1]}<br>" +
                                 "Avance: %{text}<br>" +
                                 "<extra></extra>"  # Esto elimina la información secundaria del hover
+                )
+
+                # Agregar configuración para manejar eventos de clic
+                fig.update_layout(
+                    clickmode='event+select',
+                    showlegend=True
                 )
                 # Agregar líneas verticales cada dos días
                 fecha_inicio = min(inicial, 
@@ -605,22 +612,28 @@ if st.button("Ejecutar Consulta"):
                
                 #st.title(f"Pedido: {df['PEDIDO'].iloc[0]}")
                 #st.write(f"Cliente: {df['CLIENTE'].iloc[0]}")
-                # Mostrar el gráfico
-                st.plotly_chart(fig, use_container_width=True)
-
                 # Crear un contenedor para la información detallada
                 details_container = st.empty()
 
-                # Callback para el evento de clic
-                selected_point = plotly_chart.selected_points
-                if selected_point:
-                    proceso = df_gantt.iloc[selected_point[0]]['Proceso']
+                # Mostrar el gráfico y guardar la referencia
+                chart = st.plotly_chart(fig, use_container_width=True)
+
+                # Usar st.session_state para manejar la selección
+                if 'selected_process' not in st.session_state:
+                    st.session_state.selected_process = None
+
+                # Callback para el evento de clic usando Streamlit
+                clicked = plotly_go.data[0].selectedpoints
+                if clicked:
+                    proceso = df_gantt.iloc[clicked[0]]['Proceso']
+                    st.session_state.selected_process = proceso
                     
                     # Consulta SQL para obtener detalles del proceso
+                    details_query = ""
                     if proceso == 'ARMADO':
-                        query_details = """
+                        details_query = """
                         SELECT 
-                            a.dtFechaEmision as Fecha,
+                            CONVERT(varchar, a.dtFechaEmision, 103) as Fecha,
                             b.nvDescripcion as Descripcion,
                             c.dCantidadProgramado as Cantidad
                         FROM docOrdenProduccion a
@@ -630,9 +643,9 @@ if st.button("Ejecutar Consulta"):
                         AND a.IdtdDocumentoForm = 138
                         """
                     elif proceso == 'TEÑIDO':
-                        query_details = """
+                        details_query = """
                         SELECT 
-                            e.dtFechaHoraFin as Fecha,
+                            CONVERT(varchar, e.dtFechaHoraFin, 103) as Fecha,
                             e.nvDescripcion as Descripcion,
                             d.dCantidadProgramado as Cantidad
                         FROM docRecetaOrdenProduccion d 
@@ -645,16 +658,22 @@ if st.button("Ejecutar Consulta"):
                         """
                     # [Agregar queries similares para los otros procesos]
 
-                    # Ejecutar la consulta
-                    conn = connect_db()
-                    details_df = pd.read_sql(query_details, conn, params=(df['PEDIDO'].iloc[0],))
-                    conn.close()
+                    if details_query:
+                        try:
+                            # Ejecutar la consulta
+                            conn = connect_db()
+                            details_df = pd.read_sql(details_query, conn, params=(df['IdDocumento_OrdenVenta'].iloc[0],))
+                            conn.close()
 
-                    # Mostrar los detalles en una tabla
-                    details_container.dataframe(details_df)
+                            # Mostrar los detalles en una tabla
+                            with details_container:
+                                st.subheader(f"Detalles del proceso: {proceso}")
+                                st.dataframe(details_df)
+                        except Exception as e:
+                            st.error(f"Error al obtener detalles: {str(e)}")
 
                 # Agregar instrucciones para el usuario
-                st.info("Haga doble clic en cualquier barra del proceso para ver detalles adicionales.")
+                st.info("Haga clic en cualquier barra del proceso para ver detalles adicionales.")
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {e}")
     else:
