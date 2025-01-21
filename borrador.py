@@ -447,6 +447,15 @@ if st.button("Ejecutar Consulta"):
 
                 # Crear el gráfico de Gantt
                 fig = px.timeline(df_gantt, x_start="Start", x_end="Finish", y="Proceso", text="Avance")
+                # Configurar la interactividad
+                fig.update_traces(
+                    customdata=df_gantt['Proceso'],  # Datos que queremos pasar al evento de clic
+                    hovertemplate="<b>%{customdata}</b><br>" +
+                                "Inicio: %{x[0]}<br>" +
+                                "Fin: %{x[1]}<br>" +
+                                "Avance: %{text}<br>" +
+                                "<extra></extra>"  # Esto elimina la información secundaria del hover
+                )
                 # Agregar líneas verticales cada dos días
                 fecha_inicio = min(inicial, 
                     df_gantt['Start'].min(), 
@@ -596,8 +605,56 @@ if st.button("Ejecutar Consulta"):
                
                 #st.title(f"Pedido: {df['PEDIDO'].iloc[0]}")
                 #st.write(f"Cliente: {df['CLIENTE'].iloc[0]}")
-                st.plotly_chart(fig)
+                # Mostrar el gráfico
+                st.plotly_chart(fig, use_container_width=True)
 
+                # Crear un contenedor para la información detallada
+                details_container = st.empty()
+
+                # Callback para el evento de clic
+                selected_point = plotly_chart.selected_points
+                if selected_point:
+                    proceso = df_gantt.iloc[selected_point[0]]['Proceso']
+                    
+                    # Consulta SQL para obtener detalles del proceso
+                    if proceso == 'ARMADO':
+                        query_details = """
+                        SELECT 
+                            a.dtFechaEmision as Fecha,
+                            b.nvDescripcion as Descripcion,
+                            c.dCantidadProgramado as Cantidad
+                        FROM docOrdenProduccion a
+                        INNER JOIN docOrdenProduccionItem c ON a.IdDocumento_OrdenProduccion = c.IdDocumento_OrdenProduccion
+                        INNER JOIN maeItem b ON c.IdmaeItem = b.IdmaeItem
+                        WHERE a.IdDocumento_Referencia = ?
+                        AND a.IdtdDocumentoForm = 138
+                        """
+                    elif proceso == 'TEÑIDO':
+                        query_details = """
+                        SELECT 
+                            e.dtFechaHoraFin as Fecha,
+                            e.nvDescripcion as Descripcion,
+                            d.dCantidadProgramado as Cantidad
+                        FROM docRecetaOrdenProduccion d 
+                        INNER JOIN docReceta e ON d.IdDocumento_Receta = e.IdDocumento_Receta
+                        WHERE d.IdDocumento_OrdenProduccion IN (
+                            SELECT IdDocumento_OrdenProduccion 
+                            FROM docOrdenProduccion 
+                            WHERE IdDocumento_Referencia = ?
+                        )
+                        """
+                    # [Agregar queries similares para los otros procesos]
+
+                    # Ejecutar la consulta
+                    conn = connect_db()
+                    details_df = pd.read_sql(query_details, conn, params=(df['PEDIDO'].iloc[0],))
+                    conn.close()
+
+                    # Mostrar los detalles en una tabla
+                    details_container.dataframe(details_df)
+
+                # Agregar instrucciones para el usuario
+                st.info("Haga doble clic en cualquier barra del proceso para ver detalles adicionales.")
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {e}")
     else:
