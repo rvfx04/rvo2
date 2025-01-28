@@ -594,8 +594,8 @@ if st.button("Ejecutar Consulta"):
         
 
                
-                st.title(f"Pedido: {df['PEDIDO'].iloc[0]}")
-                st.write(f"Cliente: {df['CLIENTE'].iloc[0]}")
+                #st.title(f"Pedido: {df['PEDIDO'].iloc[0]}")
+                #st.write(f"Cliente: {df['CLIENTE'].iloc[0]}")
                 st.plotly_chart(fig)
 
         except Exception as e:
