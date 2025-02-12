@@ -32,49 +32,6 @@ def connect_db(db_type='mssql'):
     else:
         raise ValueError("Tipo de base de datos no soportado.")
 
-# Consultas SQL
-SQL_QUERY_MSSQL = """
-SELECT gg.PEDIDO, gg.F_EMISION, gg.F_ENTREGA, gg.DIAS, gg.CLIENTE, gg.PO, gg.KG_REQ, 
-       gg.KG_ARMP, gg.KG_TENIDP, gg.KG_TELAPROBP, gg.UNID, gg.PROGP, gg.CORTADOP, gg.COSIDOP, 
-       ff.FMINARM, ff.FMAXARM, ff.FMINTENID, ff.FMAXTENID, ff.FMINTELAPROB, ff.FMAXTELAPROB, ff.FMINCORTE, ff.FMAXCORTE, ff.FMINCOSIDO, ff.FMAXCOSIDO
-FROM 
-    (SELECT ... ) gg
-INNER JOIN 
-    (SELECT ... ) ff
-ON gg.IdDocumento_OrdenVenta = ff.IdDocumento_OrdenVenta
-WHERE gg.PEDIDO IN ({})
-"""
-
-SQL_QUERY_POSTGRES = """
-SELECT 
-    "IdDocumento_OrdenVenta" as pedido,
-    "Fecha_Colocacion",
-    "Fecha_Entrega",
-    "star_armado",
-    "star_tenido",
-    "star_telaprob",
-    "star_corte",
-    "star_costura",
-    "finish_armado",
-    "finish_tenido",
-    "finish_telaprob",
-    "finish_corte",
-    "finish_costura"
-FROM "docOrdenVenta"
-WHERE "IdDocumento_OrdenVenta" IN ({})
-"""
-
-# Función para ejecutar consultas (usando st.cache_data)
-@st.cache_data
-def run_query(pedidos, db_type='mssql'):
-    """Ejecuta una consulta en la base de datos especificada."""
-    conn = connect_db(db_type)
-    query = SQL_QUERY_MSSQL if db_type == 'mssql' else SQL_QUERY_POSTGRES
-    query = query.format(','.join(['?' if db_type == 'mssql' else '%s' for _ in pedidos]))
-    df = pd.read_sql(query, conn, params=tuple(pedidos))
-    conn.close()
-    return df
-
 # Función para agregar filas de resumen
 def add_summary_row(df, db_type='mssql'):
     """Agrega una fila de resumen al DataFrame."""
@@ -134,6 +91,49 @@ def add_summary_row(df, db_type='mssql'):
     df_with_summary = pd.concat([df, pd.DataFrame([summary])], ignore_index=True)
     return df_with_summary
 
+# Función para ejecutar consultas (usando st.cache_data)
+@st.cache_data
+def run_query(pedidos, db_type='mssql'):
+    """Ejecuta una consulta en la base de datos especificada."""
+    conn = connect_db(db_type)
+    if db_type == 'mssql':
+        query = """
+        SELECT gg.PEDIDO, gg.F_EMISION, gg.F_ENTREGA, gg.DIAS, gg.CLIENTE, gg.PO, gg.KG_REQ, 
+               gg.KG_ARMP, gg.KG_TENIDP, gg.KG_TELAPROBP, gg.UNID, gg.PROGP, gg.CORTADOP, gg.COSIDOP, 
+               ff.FMINARM, ff.FMAXARM, ff.FMINTENID, ff.FMAXTENID, ff.FMINTELAPROB, ff.FMAXTELAPROB, ff.FMINCORTE, ff.FMAXCORTE, ff.FMINCOSIDO, ff.FMAXCOSIDO
+        FROM 
+            (SELECT ... ) gg
+        INNER JOIN 
+            (SELECT ... ) ff
+        ON gg.IdDocumento_OrdenVenta = ff.IdDocumento_OrdenVenta
+        WHERE gg.PEDIDO IN ({})
+        """.format(','.join(['?' for _ in pedidos]))
+    elif db_type == 'postgres':
+        query = """
+        SELECT 
+            "IdDocumento_OrdenVenta" as pedido,
+            "Fecha_Colocacion",
+            "Fecha_Entrega",
+            "star_armado",
+            "star_tenido",
+            "star_telaprob",
+            "star_corte",
+            "star_costura",
+            "finish_armado",
+            "finish_tenido",
+            "finish_telaprob",
+            "finish_corte",
+            "finish_costura"
+        FROM "docOrdenVenta"
+        WHERE "IdDocumento_OrdenVenta" IN ({})
+        """.format(','.join(['%s' for _ in pedidos]))
+    else:
+        raise ValueError("Tipo de base de datos no soportado.")
+    
+    df = pd.read_sql(query, conn, params=tuple(pedidos))
+    conn.close()
+    return df
+
 # Función para crear el gráfico de Gantt
 def create_gantt_chart(df, df_postgres):
     """Crea un gráfico de Gantt con los datos proporcionados."""
@@ -168,7 +168,6 @@ def create_gantt_chart(df, df_postgres):
     return fig
 
 # Interfaz de usuario
-db_type = st.selectbox("Selecciona el tipo de base de datos", ['mssql', 'postgres'])
 pedidos_input = st.text_input("Ingresa los números de pedido (separados por coma)")
 
 if st.button("Ejecutar Consulta"):
@@ -176,21 +175,25 @@ if st.button("Ejecutar Consulta"):
         try:
             pedidos = [p.strip() for p in pedidos_input.split(',')]
             
-            df = run_query(pedidos, db_type=db_type)
+            # Ejecutar consultas
+            df = run_query(pedidos, db_type='mssql')
             df_postgres = run_query(pedidos, db_type='postgres')
             
             if df.empty:
-                st.warning("No se encontraron datos para estos pedidos.")
+                st.warning("No se encontraron datos para estos pedidos en SQL Server.")
             else:
-                df = add_summary_row(df, db_type=db_type)
+                # Agregar filas de resumen
+                df = add_summary_row(df, db_type='mssql')
                 df_postgres = add_summary_row(df_postgres, db_type='postgres')
                 
+                # Mostrar datos detallados
                 st.subheader("Detalle por Pedido")
                 st.dataframe(df)
                 
                 st.subheader("Info Plan")
                 st.dataframe(df_postgres)
                 
+                # Crear y mostrar el gráfico de Gantt
                 fig = create_gantt_chart(df, df_postgres)
                 st.plotly_chart(fig)
         except Exception as e:
