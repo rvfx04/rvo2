@@ -420,6 +420,10 @@ def create_gantt_chart(df, df_postgres):
     fecha_emision = pd.to_datetime(df['F_EMISION'].iloc[n])
     fecha_entrega = pd.to_datetime(df['F_ENTREGA'].iloc[n])
 
+    # Fechas de inicio y fin del pedido
+    fecha_inicio_pedido = min(df_gantt['Start'].min(), df_gantt['Start Real'].min())
+    fecha_fin_pedido = max(df_gantt['Finish'].max(), df_gantt['Finish Real'].max())
+
     # Agregar líneas verticales para las fechas de emisión y entrega
     fig.add_shape(
         type="line",
@@ -450,6 +454,40 @@ def create_gantt_chart(df, df_postgres):
         x=fecha_entrega,
         y=len(df_gantt)/2,
         text="Entrega<br>" + fecha_entrega.strftime('%b %d'),
+        showarrow=True,
+        arrowhead=1
+    )
+
+    # Agregar líneas verticales para las fechas de inicio y fin del pedido
+    fig.add_shape(
+        type="line",
+        x0=fecha_inicio_pedido,
+        y0=0,
+        x1=fecha_inicio_pedido,
+        y1=len(df_gantt),
+        line=dict(color="purple", width=2, dash="dash"),
+        name="Inicio Pedido"
+    )
+    fig.add_annotation(
+        x=fecha_inicio_pedido,
+        y=len(df_gantt)/2,
+        text="Inicio<br>" + fecha_inicio_pedido.strftime('%b %d'),
+        showarrow=True,
+        arrowhead=1
+    )
+    fig.add_shape(
+        type="line",
+        x0=fecha_fin_pedido,
+        y0=0,
+        x1=fecha_fin_pedido,
+        y1=len(df_gantt),
+        line=dict(color="orange", width=2, dash="dash"),
+        name="Fin Pedido"
+    )
+    fig.add_annotation(
+        x=fecha_fin_pedido,
+        y=len(df_gantt)/2,
+        text="Fin<br>" + fecha_fin_pedido.strftime('%b %d'),
         showarrow=True,
         arrowhead=1
     )
