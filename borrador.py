@@ -416,24 +416,24 @@ def create_gantt_chart(df, df_postgres):
         name='Fin Real'
     ))
 
-    # Fechas de colocación y entrega
-    fecha_colocacion = pd.to_datetime(df['F_EMISION'].iloc[n])
+    # Fechas de emisión y entrega
+    fecha_emision = pd.to_datetime(df['F_EMISION'].iloc[n])
     fecha_entrega = pd.to_datetime(df['F_ENTREGA'].iloc[n])
 
-    # Agregar líneas verticales para las fechas de colocación y entrega
+    # Agregar líneas verticales para las fechas de emisión y entrega
     fig.add_shape(
         type="line",
-        x0=fecha_colocacion,
+        x0=fecha_emision,
         y0=0,
-        x1=fecha_colocacion,
+        x1=fecha_emision,
         y1=len(df_gantt),
         line=dict(color="green", width=2, dash="dash"),
-        name="Fecha Colocación"
+        name="Fecha Emisión"
     )
     fig.add_annotation(
-        x=fecha_colocacion,
+        x=fecha_emision,
         y=len(df_gantt)/2,
-        text="Emision<br>" + fecha_colocacion.strftime('%b %d'),
+        text="Emisión<br>" + fecha_emision.strftime('%b %d'),
         showarrow=True,
         arrowhead=1
     )
