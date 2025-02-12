@@ -15,7 +15,7 @@ def connect_db(db_type='mssql'):
     """Conecta a la base de datos especificada."""
     if db_type == 'mssql':
         return pyodbc.connect(
-            "driver={odbc driver 17 for sql server};"
+            "driver={ODBC Driver 17 for SQL Server};"
             "server=" + st.secrets["msserver"] + ";"
             "database=" + st.secrets["msdatabase"] + ";"
             "uid=" + st.secrets["msusername"] + ";"
@@ -64,8 +64,8 @@ FROM "docOrdenVenta"
 WHERE "IdDocumento_OrdenVenta" IN ({})
 """
 
-# Función para ejecutar consultas
-@st.cache
+# Función para ejecutar consultas (usando st.cache_data)
+@st.cache_data
 def run_query(pedidos, db_type='mssql'):
     """Ejecuta una consulta en la base de datos especificada."""
     conn = connect_db(db_type)
