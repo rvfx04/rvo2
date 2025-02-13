@@ -360,6 +360,9 @@ def create_gantt_chart(df, df_postgres):
     finish_corte = pd.to_datetime(df_postgres['finish_corte'].iloc[n])
     start_costura = pd.to_datetime(df_postgres['star_costura'].iloc[n])
     finish_costura = pd.to_datetime(df_postgres['finish_costura'].iloc[n])
+    inicial = pd.to_datetime(df_postgres['Fecha_Colocacion'].iloc[n])
+    fin = pd.to_datetime(df_postgres['Fecha_Entrega'].iloc[n])
+
     
     # Crear DataFrame para el gráfico de Gantt
     df_gantt = pd.DataFrame({
