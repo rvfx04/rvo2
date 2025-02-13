@@ -421,8 +421,8 @@ def create_gantt_chart(df, df_postgres):
     fecha_entrega = pd.to_datetime(df['F_ENTREGA'].iloc[n])
 
     # Fechas de inicio y fin del pedido
-    fecha_inicio_pedido = min(df_gantt['Start'].min(), df_gantt['Start Real'].min())
-    fecha_fin_pedido = max(df_gantt['Finish'].max(), df_gantt['Finish Real'].max())
+    fecha_inicio_pedido = min(inicial,df_gantt['Start'].min(), df_gantt['Start Real'].min())
+    fecha_fin_pedido = max(fin,df_gantt['Finish'].max(), df_gantt['Finish Real'].max())
 
     # Agregar líneas verticales para las fechas de emisión y entrega
     fig.add_shape(
