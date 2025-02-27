@@ -463,9 +463,10 @@ if st.button("Ejecutar Consulta"):
                                 avance_data.append({
                                     'PEDIDO': pedido_original,  # Usar el formato original para mostrar
                                     'PROCESO': proceso,
-                                    'RETRASO_DIAS': diferencia_dias,
-                                    'AVANCE_HOY': f"{porcentaje_avance:.0f}%",
-                                    'AVANCE': avance_valor  # Nueva columna
+                                    'Avance_Real': avance_valor  # Nueva columna
+                                    'Días(-)': diferencia_dias,
+                                    'Avance_Prog': f"{porcentaje_avance:.0f}%",
+                                    
                                 })
                             except Exception as e:
                                 # En caso de error, mostrar el proceso que falló pero continuar con los demás
