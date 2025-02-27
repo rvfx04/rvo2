@@ -371,9 +371,7 @@ if st.button("Ejecutar Consulta"):
                 st.subheader("Info Plan")
                 st.dataframe(df_postgres)
                 
-                # Crear y mostrar el gráfico de Gantt
-                fig = create_gantt_chart(df, df_postgres)
-                st.plotly_chart(fig)
+                
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {e}")
     else:
