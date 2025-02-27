@@ -396,7 +396,7 @@ if st.button("Ejecutar Consulta"):
                 st.subheader("Avance de Procesos por Pedido")
 
                 # Crear un nuevo DataFrame para el avance de procesos
-                procesos = ['ARMADO', 'TENIDO', 'TELAPROB', 'CORTE', 'COSIDO']
+                procesos = ['ARM', 'TENID', 'TELAPROB', 'CORTE', 'COSIDO']
                 avance_data = []
 
                 for _, row in df.iterrows():
