@@ -382,8 +382,8 @@ if st.button("Ejecutar Consulta"):
                 st.warning("No se encontraron datos para estos pedidos en SQL Server.")
             else:
                 # Agregar filas de resumen
-                df = add_summary_row(df, db_type='mssql')
-                df_postgres = add_summary_row(df_postgres, db_type='postgres')
+                #df = add_summary_row(df, db_type='mssql')
+                #df_postgres = add_summary_row(df_postgres, db_type='postgres')
                 
                 # Mostrar datos detallados
                 #st.subheader("Detalle por Pedido")
