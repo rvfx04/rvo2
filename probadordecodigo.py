@@ -373,35 +373,35 @@ if st.button("Ejecutar Consulta"):
                                 # Mostrar tabla adicional con el avance de cada proceso
                 from datetime import datetime
 
-st.subheader("Avance de Procesos por Pedido")
+                st.subheader("Avance de Procesos por Pedido")
 
-# Crear un nuevo DataFrame para el avance de procesos
-procesos = ['ARMADO', 'TENIDO', 'TELAPROB', 'CORTE', 'COSIDO']
-avance_data = []
+                # Crear un nuevo DataFrame para el avance de procesos
+                procesos = ['ARMADO', 'TENIDO', 'TELAPROB', 'CORTE', 'COSIDO']
+                avance_data = []
 
-for _, row in df.iterrows():
-    pedido = row['PEDIDO']
-    for proceso in procesos:
-        fecha_inicio = row[f'FMIN{proceso}'].date()  # Convertir a solo fecha
-        fecha_fin = row[f'FMAX{proceso}'].date()    # Convertir a solo fecha
-        
-        if pd.notna(fecha_inicio) and pd.notna(fecha_fin):
-            fecha_actual = datetime.now().date()  # Obtener solo la fecha actual
-            diferencia_dias = (fecha_fin - fecha_actual).days
-            porcentaje_avance = ((fecha_actual - fecha_inicio).days / (fecha_fin - fecha_inicio).days) * 100
-            avance_data.append({
-                'PEDIDO': pedido,
-                'PROCESO': proceso,
-                'DIFERENCIA_DIAS': diferencia_dias,
-                'PORCENTAJE_AVANCE': f"{porcentaje_avance:.2f}%"
-            })
-                
+                for _, row in df.iterrows():
+                    pedido = row['PEDIDO']
+                    for proceso in procesos:
+                        fecha_inicio = row[f'FMIN{proceso}'].date()  # Convertir a solo fecha
+                        fecha_fin = row[f'FMAX{proceso}'].date()    # Convertir a solo fecha
+                        
+                        if pd.notna(fecha_inicio) and pd.notna(fecha_fin):
+                            fecha_actual = datetime.now().date()  # Obtener solo la fecha actual
+                            diferencia_dias = (fecha_fin - fecha_actual).days
+                            porcentaje_avance = ((fecha_actual - fecha_inicio).days / (fecha_fin - fecha_inicio).days) * 100
+                            avance_data.append({
+                                'PEDIDO': pedido,
+                                'PROCESO': proceso,
+                                'DIFERENCIA_DIAS': diferencia_dias,
+                                'PORCENTAJE_AVANCE': f"{porcentaje_avance:.2f}%"
+                            })
+                                
                 # Crear el DataFrame de avance
                 df_avance = pd.DataFrame(avance_data)
                 
                 # Mostrar el DataFrame de avance
                 st.dataframe(df_avance)
-              
+            
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {e}")
     else:
