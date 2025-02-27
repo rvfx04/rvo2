@@ -386,7 +386,12 @@ if st.button("Ejecutar Consulta"):
                         df[f'FMAX{proceso}'] = pd.to_datetime(df[f'FMAX{proceso}'])
                         fecha_inicio = row[f'FMIN{proceso}'].date()  # Convertir a solo fecha
                         fecha_fin = row[f'FMAX{proceso}'].date()    # Convertir a solo fecha
-                        
+                        # Imprimir las fechas
+                        print(f"Proceso: {proceso}")
+                        print(f"Fecha de inicio: {fecha_inicio}")
+                        print(f"Fecha de fin: {fecha_fin}")
+                        print("-" * 30)  # Separador para mejor legibilidad
+
                         if pd.notna(fecha_inicio) and pd.notna(fecha_fin):
                             fecha_actual = datetime.now().date()  # Obtener solo la fecha actual
                             diferencia_dias = (fecha_fin - fecha_actual).days
