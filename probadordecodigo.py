@@ -396,48 +396,54 @@ if st.button("Ejecutar Consulta"):
                 st.subheader("Avance de Procesos por Pedido")
 
                 # Crear un nuevo DataFrame para el avance de procesos
-                procesos = ['ARM', 'TENID', 'TELAPROB', 'CORTE', 'COSIDO']
-                avance_data = []
+                # Crear un nuevo DataFrame para el avance de procesos
+procesos = ['ARM', 'TENID', 'TELAPROB', 'CORTE', 'COSIDO']
+avance_data = []
 
-                for _, row in df.iterrows():
-                    pedido = row['PEDIDO']
-                    for proceso in procesos:
-                        # Las fechas ya deben ser objetos date a este punto
-                        fecha_inicio = row[f'FMIN{proceso}']
-                        fecha_fin = row[f'FMAX{proceso}']
-                        
-                        if pd.notna(fecha_inicio) and pd.notna(fecha_fin):
-                            fecha_actual = datetime.now().date()  # Obtener solo la fecha actual
-                            
-                            # Asegurar que fecha_inicio y fecha_fin son objetos date
-                            if not isinstance(fecha_inicio, datetime.date):
-                                continue
-                            if not isinstance(fecha_fin, datetime.date):
-                                continue
-                                
-                            diferencia_dias = (fecha_fin - fecha_actual).days
-                            
-                            # Evitar división por cero
-                            if (fecha_fin - fecha_inicio).days > 0:
-                                porcentaje_avance = ((fecha_actual - fecha_inicio).days / (fecha_fin - fecha_inicio).days) * 100
-                                # Limitar el porcentaje entre 0 y 100
-                                porcentaje_avance = max(0, min(100, porcentaje_avance))
-                            else:
-                                porcentaje_avance = 100 if fecha_actual >= fecha_fin else 0
-                                
-                            avance_data.append({
-                                'PEDIDO': pedido,
-                                'PROCESO': proceso,
-                                'DIFERENCIA_DIAS': diferencia_dias,
-                                'PORCENTAJE_AVANCE': f"{porcentaje_avance:.2f}%"
-                            })
+for _, row in df.iterrows():
+    pedido = row['PEDIDO']
+    for proceso in procesos:
+        # Las fechas ya deben ser objetos date a este punto
+        fecha_inicio = row[f'FMIN{proceso}']
+        fecha_fin = row[f'FMAX{proceso}']
+        
+        # Verificar que las fechas no sean nulas y sean del tipo correcto
+        if pd.notna(fecha_inicio) and pd.notna(fecha_fin):
+            # Convertir a datetime.date si no lo es ya
+            if not isinstance(fecha_inicio, datetime.date):
+                fecha_inicio = pd.to_datetime(fecha_inicio).date()
+            if not isinstance(fecha_fin, datetime.date):
+                fecha_fin = pd.to_datetime(fecha_fin).date()
+            
+            fecha_actual = datetime.now().date()  # Obtener solo la fecha actual
+            
+            # Asegurar que fecha_inicio y fecha_fin son objetos date
+            if not isinstance(fecha_inicio, datetime.date) or not isinstance(fecha_fin, datetime.date):
+                continue
                 
-                # Crear el DataFrame de avance si hay datos
-                if avance_data:
-                    df_avance = pd.DataFrame(avance_data)
-                    st.dataframe(df_avance)
-                else:
-                    st.warning("No hay datos de avance disponibles.")
+            diferencia_dias = (fecha_fin - fecha_actual).days
+            
+            # Evitar división por cero
+            if (fecha_fin - fecha_inicio).days > 0:
+                porcentaje_avance = ((fecha_actual - fecha_inicio).days / (fecha_fin - fecha_inicio).days) * 100
+                # Limitar el porcentaje entre 0 y 100
+                porcentaje_avance = max(0, min(100, porcentaje_avance))
+            else:
+                porcentaje_avance = 100 if fecha_actual >= fecha_fin else 0
+                
+            avance_data.append({
+                'PEDIDO': pedido,
+                'PROCESO': proceso,
+                'DIFERENCIA_DIAS': diferencia_dias,
+                'PORCENTAJE_AVANCE': f"{porcentaje_avance:.2f}%"
+            })
+
+# Crear el DataFrame de avance si hay datos
+if avance_data:
+    df_avance = pd.DataFrame(avance_data)
+    st.dataframe(df_avance)
+else:
+    st.warning("No hay datos de avance disponibles.")
             
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {e}")
