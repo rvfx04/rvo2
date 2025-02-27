@@ -344,6 +344,173 @@ def run_query(pedidos, db_type='mssql'):
     conn.close()
     return df
 
+# Función para crear el gráfico de Gantt
+def create_gantt_chart(df, df_postgres):
+    """Crea un gráfico de Gantt con los datos proporcionados."""
+    n = len(df) - 1  # Índice de la fila de resumen
+    
+    # Fechas de inicio y fin
+    start_armado = pd.to_datetime(df_postgres['star_armado'].iloc[n])
+    finish_armado = pd.to_datetime(df_postgres['finish_armado'].iloc[n])
+    start_tenido = pd.to_datetime(df_postgres['star_tenido'].iloc[n])
+    finish_tenido = pd.to_datetime(df_postgres['finish_tenido'].iloc[n])
+    start_telaprob = pd.to_datetime(df_postgres['star_telaprob'].iloc[n])
+    finish_telaprob = pd.to_datetime(df_postgres['finish_telaprob'].iloc[n])
+    start_corte = pd.to_datetime(df_postgres['star_corte'].iloc[n])
+    finish_corte = pd.to_datetime(df_postgres['finish_corte'].iloc[n])
+    start_costura = pd.to_datetime(df_postgres['star_costura'].iloc[n])
+    finish_costura = pd.to_datetime(df_postgres['finish_costura'].iloc[n])
+    
+
+    
+    # Crear DataFrame para el gráfico de Gantt
+    df_gantt = pd.DataFrame({
+        'Proceso': ['ARMADO', 'TEÑIDO', 'TELA_APROB', 'CORTE', 'COSTURA'],
+        'Start': [start_armado, start_tenido, start_telaprob, start_corte, start_costura],
+        'Finish': [finish_armado, finish_tenido, finish_telaprob, finish_corte, finish_costura],
+        'Start Real': [pd.to_datetime(df['FMINARM'].iloc[n]), pd.to_datetime(df['FMINTENID'].iloc[n]), 
+                       pd.to_datetime(df['FMINTELAPROB'].iloc[n]), pd.to_datetime(df['FMINCORTE'].iloc[n]), 
+                       pd.to_datetime(df['FMINCOSIDO'].iloc[n])],
+        'Finish Real': [pd.to_datetime(df['FMAXARM'].iloc[n]), pd.to_datetime(df['FMAXTENID'].iloc[n]), 
+                        pd.to_datetime(df['FMAXTELAPROB'].iloc[n]), pd.to_datetime(df['FMAXCORTE'].iloc[n]), 
+                        pd.to_datetime(df['FMAXCOSIDO'].iloc[n])],
+        'Avance': [df['KG_ARMP'].iloc[n], df['KG_TENIDP'].iloc[n], df['KG_TELAPROBP'].iloc[n], 
+                   df['CORTADOP'].iloc[n], df['COSIDOP'].iloc[n]]
+    })
+    
+    # Crear el gráfico de Gantt
+    fig = px.timeline(df_gantt, x_start="Start", x_end="Finish", y="Proceso", text="Avance")
+    
+    # Agregar líneas verticales cada dos días
+    fecha_inicio = min(df_gantt['Start'].min(), df_gantt['Start Real'].min())
+    fecha_fin = max(df_gantt['Finish'].max(), df_gantt['Finish Real'].max())
+    dias_totales = (fecha_fin - fecha_inicio).days
+
+    for i in range(0, dias_totales + 1, 2):
+        fecha_linea = fecha_inicio + timedelta(days=i)
+        fig.add_shape(
+            type="line",
+            x0=fecha_linea,
+            y0=0,
+            x1=fecha_linea,
+            y1=len(df_gantt),
+            line=dict(
+                color="lightgray",
+                width=1,
+                dash="dot"
+            ),
+            layer="below"  # Esto asegura que las líneas estén detrás de las barras del Gantt
+        )
+
+    # Agregar las marcas de inicio y fin reales
+    fig.add_trace(go.Scatter(
+        x=df_gantt['Start Real'],
+        y=df_gantt['Proceso'],
+        mode='markers',
+        marker=dict(symbol='triangle-up', size=10, color='black'),
+        name='Inicio Real'
+    ))
+    fig.add_trace(go.Scatter(
+        x=df_gantt['Finish Real'],
+        y=df_gantt['Proceso'],
+        mode='markers',
+        marker=dict(symbol='triangle-down', size=10, color='red'),
+        name='Fin Real'
+    ))
+
+    # Fechas de emisión y entrega
+    fecha_emision = pd.to_datetime(df['F_EMISION'].iloc[n])
+    fecha_entrega = pd.to_datetime(df['F_ENTREGA'].iloc[n])
+
+    # Fechas de inicio y fin del pedido
+    fecha_inicio_pedido = min(df_gantt['Start'].min(), df_gantt['Start Real'].min())
+    fecha_fin_pedido = max(df_gantt['Finish'].max(), df_gantt['Finish Real'].max())
+
+    # Agregar líneas verticales para las fechas de emisión y entrega
+    fig.add_shape(
+        type="line",
+        x0=fecha_emision,
+        y0=0,
+        x1=fecha_emision,
+        y1=len(df_gantt),
+        line=dict(color="green", width=2, dash="dash"),
+        name="Fecha Emisión"
+    )
+    fig.add_annotation(
+        x=fecha_emision,
+        y=len(df_gantt)/2,
+        text="Emisión<br>" + fecha_emision.strftime('%b %d'),
+        showarrow=True,
+        arrowhead=1
+    )
+    fig.add_shape(
+        type="line",
+        x0=fecha_entrega,
+        y0=0,
+        x1=fecha_entrega,
+        y1=len(df_gantt),
+        line=dict(color="red", width=2, dash="dash"),
+        name="Fecha Entrega"
+    )
+    fig.add_annotation(
+        x=fecha_entrega,
+        y=len(df_gantt)/2,
+        text="Entrega<br>" + fecha_entrega.strftime('%b %d'),
+        showarrow=True,
+        arrowhead=1
+    )
+
+    # Agregar líneas verticales para las fechas de inicio y fin del pedido
+    fig.add_shape(
+        type="line",
+        x0=fecha_inicio_pedido,
+        y0=0,
+        x1=fecha_inicio_pedido,
+        y1=len(df_gantt),
+        line=dict(color="purple", width=2, dash="dash"),
+        name="Inicio Pedido"
+    )
+    fig.add_annotation(
+        x=fecha_inicio_pedido,
+        y=len(df_gantt)/2,
+        text="Inicio<br>" + fecha_inicio_pedido.strftime('%b %d'),
+        showarrow=True,
+        arrowhead=1
+    )
+    fig.add_shape(
+        type="line",
+        x0=fecha_fin_pedido,
+        y0=0,
+        x1=fecha_fin_pedido,
+        y1=len(df_gantt),
+        line=dict(color="orange", width=2, dash="dash"),
+        name="Fin Pedido"
+    )
+    fig.add_annotation(
+        x=fecha_fin_pedido,
+        y=len(df_gantt)/2,
+        text="Fin<br>" + fecha_fin_pedido.strftime('%b %d'),
+        showarrow=True,
+        arrowhead=1
+    )
+
+    # Agregar una línea vertical para la fecha actual
+    fecha_actual = datetime.now().strftime('%Y-%m-%d')
+    fig.add_shape(
+        type="line",
+        x0=fecha_actual,
+        y0=0,
+        x1=fecha_actual,
+        y1=len(df_gantt),
+        line=dict(color="blue", width=2, dash="dash"),
+        name="Fecha Actual"
+    )
+
+    # Ajustar el diseño del gráfico
+    fig.update_xaxes(tickmode='linear', dtick=2 * 24 * 60 * 60 * 1000, tickformat='%d\n%b\n%y')
+    fig.update_yaxes(autorange="reversed")
+    
+    return fig
 
 # Interfaz de usuario
 pedidos_input = st.text_input("Ingresa los números de pedido (separados por coma)")
@@ -370,207 +537,10 @@ if st.button("Ejecutar Consulta"):
                 
                 st.subheader("Info Plan")
                 st.dataframe(df_postgres)
-                # Después de st.dataframe(df_postgres), agrega este código:
-
-                # Crear tabla de avance de procesos
-                st.subheader("Avance de Procesos por Pedido")
-
-                # Obtener la fecha actual
-                current_date = datetime.now().date()
-
-                # Preparar el dataframe para el análisis de avance
-                def prepare_process_progress(df_mssql, df_postgres):
-                    """Prepara un dataframe con el avance de los procesos."""
-                    # Verificar si los DataFrames tienen datos
-                    if df_mssql.empty or df_postgres.empty:
-                        st.warning("Uno de los DataFrames (MSSQL o PostgreSQL) está vacío.")
-                        return pd.DataFrame()
-                    
-                    # Unir los dataframes por pedido
-                    processes_df = pd.DataFrame()
-                    
-                    for _, row in df_mssql.iterrows():
-                        if row['PEDIDO'] == 'RESUMEN':
-                            continue
-                            
-                        pedido = row['PEDIDO']
-                        postgres_row = df_postgres[df_postgres['pedido'] == pedido]
-                        
-                        if postgres_row.empty:
-                            st.warning(f"No se encontraron datos en PostgreSQL para el pedido: {pedido}")
-                            continue
-                        
-                        # Para cada proceso, calcular el avance
-                        processes = [
-                            {
-                                'pedido': pedido,
-                                'proceso': 'Armado',
-                                'inicio': postgres_row['star_armado'].values[0] if not postgres_row['star_armado'].isna().all() else None,
-                                'fin': postgres_row['finish_armado'].values[0] if not postgres_row['finish_armado'].isna().all() else None,
-                                'porcentaje': row['KG_ARMP']
-                            },
-                            {
-                                'pedido': pedido,
-                                'proceso': 'Teñido',
-                                'inicio': postgres_row['star_tenido'].values[0] if not postgres_row['star_tenido'].isna().all() else None,
-                                'fin': postgres_row['finish_tenido'].values[0] if not postgres_row['finish_tenido'].isna().all() else None,
-                                'porcentaje': row['KG_TENIDP']
-                            },
-                            {
-                                'pedido': pedido,
-                                'proceso': 'Tela Aprobada',
-                                'inicio': postgres_row['star_telaprob'].values[0] if not postgres_row['star_telaprob'].isna().all() else None,
-                                'fin': postgres_row['finish_telaprob'].values[0] if not postgres_row['finish_telaprob'].isna().all() else None,
-                                'porcentaje': row['KG_TELAPROBP']
-                            },
-                            {
-                                'pedido': pedido,
-                                'proceso': 'Corte',
-                                'inicio': postgres_row['star_corte'].values[0] if not postgres_row['star_corte'].isna().all() else None,
-                                'fin': postgres_row['finish_corte'].values[0] if not postgres_row['finish_corte'].isna().all() else None,
-                                'porcentaje': row['CORTADOP']
-                            },
-                            {
-                                'pedido': pedido,
-                                'proceso': 'Costura',
-                                'inicio': postgres_row['star_costura'].values[0] if not postgres_row['star_costura'].isna().all() else None,
-                                'fin': postgres_row['finish_costura'].values[0] if not postgres_row['finish_costura'].isna().all() else None,
-                                'porcentaje': row['COSIDOP']
-                            }
-                        ]
-                        
-                        temp_df = pd.DataFrame(processes)
-                        processes_df = pd.concat([processes_df, temp_df], ignore_index=True)
-                    
-                    return processes_df
-
-                # Calcular las métricas adicionales
-                def calculate_process_metrics(processes_df, current_date):
-                    """Calcula las métricas de avance para cada proceso."""
-                    if processes_df.empty:
-                        return pd.DataFrame()
-                    
-                    # Convertir porcentajes a números
-                    processes_df['porcentaje_num'] = processes_df['porcentaje'].apply(
-                        lambda x: float(str(x).rstrip('%')) if pd.notna(x) and isinstance(x, str) else 0
-                    )
-                    
-                    # Calcular días hasta finalización
-                    def calc_days_to_finish(end_date):
-                        if pd.isna(end_date):
-                            return None
-                        if isinstance(end_date, str):
-                            try:
-                                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-                            except ValueError:
-                                return None
-                        return (end_date - current_date).days
-                    
-                    processes_df['dias_para_finalizar'] = processes_df['fin'].apply(calc_days_to_finish)
-                    
-                    # Calcular el porcentaje de tiempo transcurrido
-                    def calc_time_percentage(row):
-                        if pd.isna(row['inicio']) or pd.isna(row['fin']):
-                            return None
-                            
-                        try:
-                            if isinstance(row['inicio'], str):
-                                start_date = datetime.strptime(row['inicio'], '%Y-%m-%d').date()
-                            else:
-                                start_date = row['inicio']
-                                
-                            if isinstance(row['fin'], str):
-                                end_date = datetime.strptime(row['fin'], '%Y-%m-%d').date()
-                            else:
-                                end_date = row['fin']
-                                
-                            total_days = (end_date - start_date).days
-                            elapsed_days = (current_date - start_date).days
-                            
-                            if total_days <= 0:
-                                return 100.0
-                                
-                            percentage = min(100.0, max(0.0, (elapsed_days / total_days) * 100))
-                            return round(percentage, 1)
-                        except Exception:
-                            return None
-                    
-                    processes_df['porcentaje_tiempo'] = processes_df.apply(calc_time_percentage, axis=1)
-                    
-                    # Formatear porcentajes para visualización
-                    processes_df['porcentaje_tiempo_fmt'] = processes_df['porcentaje_tiempo'].apply(
-                        lambda x: f"{x:.1f}%" if pd.notna(x) else "N/A"
-                    )
-                    
-                    return processes_df
-
-                # ... (código anterior se mantiene igual)
-
-                # Ejecutar el análisis
-                processes_df = prepare_process_progress(df, df_postgres)
-
-                # Depuración: Verificar si los DataFrames tienen datos
-                st.write("Datos de MSSQL (df):")
-                st.write(df.head())  # Mostrar las primeras filas de df
-
-                st.write("Datos de PostgreSQL (df_postgres):")
-                st.write(df_postgres.head())  # Mostrar las primeras filas de df_postgres
-
-                st.write("Datos de procesos generados (processes_df):")
-                st.write(processes_df)  # Mostrar el DataFrame de procesos
-
-                if not processes_df.empty:
-                    processes_with_metrics = calculate_process_metrics(processes_df, current_date)
-                    
-                    # Preparar dataframe para visualización
-                    display_df = processes_with_metrics[['pedido', 'proceso', 'porcentaje', 'dias_para_finalizar', 'porcentaje_tiempo_fmt']]
-                    display_df.columns = ['Pedido', 'Proceso', 'Avance Real', 'Días para Finalizar', 'Avance Tiempo (%)']
-                    
-                    # Mostrar tabla
-                    st.dataframe(display_df)
-                    
-                    # Crear gráfico comparativo de avance real vs tiempo
-                    st.subheader("Comparativa de Avance Real vs Tiempo Transcurrido")
-                    
-                    for pedido in processes_with_metrics['pedido'].unique():
-                        pedido_df = processes_with_metrics[processes_with_metrics['pedido'] == pedido]
-                        
-                        fig = go.Figure()
-                        
-                        # Añadir barras para el avance real
-                        fig.add_trace(go.Bar(
-                            x=pedido_df['proceso'],
-                            y=pedido_df['porcentaje_num'],
-                            name='Avance Real (%)',
-                            marker_color='royalblue'
-                        ))
-                        
-                        # Añadir barras para el avance de tiempo
-                        fig.add_trace(go.Bar(
-                            x=pedido_df['proceso'],
-                            y=pedido_df['porcentaje_tiempo'],
-                            name='Tiempo Transcurrido (%)',
-                            marker_color='orange'
-                        ))
-                        
-                        # Configurar el diseño
-                        fig.update_layout(
-                            title=f'Pedido: {pedido}',
-                            xaxis_title='Proceso',
-                            yaxis_title='Porcentaje (%)',
-                            barmode='group',
-                            yaxis=dict(range=[0, 105]),
-                            height=400,
-                            width=800
-                        )
-                        
-                        st.plotly_chart(fig)
-                        
-                        # Línea divisoria entre pedidos
-                        st.markdown("---")
-                else:
-                    st.warning("No hay datos disponibles para calcular el avance de procesos.")
-                                                
+                
+                # Crear y mostrar el gráfico de Gantt
+                fig = create_gantt_chart(df, df_postgres)
+                st.plotly_chart(fig)
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {e}")
     else:
