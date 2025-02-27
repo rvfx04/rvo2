@@ -386,14 +386,14 @@ if st.button("Ejecutar Consulta"):
                 df_postgres = add_summary_row(df_postgres, db_type='postgres')
                 
                 # Mostrar datos detallados
-                st.subheader("Detalle por Pedido")
-                st.dataframe(df)
+                #st.subheader("Detalle por Pedido")
+                #st.dataframe(df)
                 
-                st.subheader("Info Plan")
-                st.dataframe(df_postgres)
+                #st.subheader("Info Plan")
+                #st.dataframe(df_postgres)
                 
                 # Mostrar tabla adicional con el avance de cada proceso
-                st.subheader("Avance de Procesos por Pedido")
+                #st.subheader("Avance de Procesos por Pedido")
 
                 # Modificar la parte problemática del código (líneas 402-433 aproximadamente)
                 # Modificar la parte problemática del código evitando el uso de isinstance()
@@ -474,10 +474,10 @@ if st.button("Ejecutar Consulta"):
                 # Crear el DataFrame de avance si hay datos - FIXED INDENTATION
                 if avance_data:
                     df_avance = pd.DataFrame(avance_data)
-                    st.dataframe(df_avance)
+                    #st.dataframe(df_avance)
                     # Después de crear df_avance y mostrarlo
                 if 'df_avance' in locals() and not df_avance.empty:
-                    st.subheader("Procesos con Avance Bajo")
+                    st.subheader("Situación de procesos por pedido")
                     
                     # Convertir la columna AVANCE_HOY a numérico (quitar el símbolo %)
                     df_avance['AVANCE_NUM'] = df_avance['AVANCE'].str.rstrip('%').astype(float)
