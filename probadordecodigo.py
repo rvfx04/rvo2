@@ -439,8 +439,8 @@ if st.button("Ejecutar Consulta"):
                                 avance_data.append({
                                     'PEDIDO': pedido,
                                     'PROCESO': proceso,
-                                    'DIFERENCIA_DIAS': diferencia_dias,
-                                    'PORCENTAJE_AVANCE': f"{porcentaje_avance:.2f}%"
+                                    'RETRASO_DIAS': diferencia_dias,
+                                    'AVANCE_HOY': f"{porcentaje_avance:.2f}%"
                                 })
                             except Exception as e:
                                 # En caso de error, mostrar el proceso que falló pero continuar con los demás
