@@ -504,71 +504,71 @@ if st.button("Ejecutar Consulta"):
 
                 # ... (código anterior se mantiene igual)
 
-# Ejecutar el análisis
-processes_df = prepare_process_progress(df, df_postgres)
+                # Ejecutar el análisis
+                processes_df = prepare_process_progress(df, df_postgres)
 
-# Depuración: Verificar si los DataFrames tienen datos
-st.write("Datos de MSSQL (df):")
-st.write(df.head())  # Mostrar las primeras filas de df
+                # Depuración: Verificar si los DataFrames tienen datos
+                st.write("Datos de MSSQL (df):")
+                st.write(df.head())  # Mostrar las primeras filas de df
 
-st.write("Datos de PostgreSQL (df_postgres):")
-st.write(df_postgres.head())  # Mostrar las primeras filas de df_postgres
+                st.write("Datos de PostgreSQL (df_postgres):")
+                st.write(df_postgres.head())  # Mostrar las primeras filas de df_postgres
 
-st.write("Datos de procesos generados (processes_df):")
-st.write(processes_df)  # Mostrar el DataFrame de procesos
+                st.write("Datos de procesos generados (processes_df):")
+                st.write(processes_df)  # Mostrar el DataFrame de procesos
 
-if not processes_df.empty:
-    processes_with_metrics = calculate_process_metrics(processes_df, current_date)
-    
-    # Preparar dataframe para visualización
-    display_df = processes_with_metrics[['pedido', 'proceso', 'porcentaje', 'dias_para_finalizar', 'porcentaje_tiempo_fmt']]
-    display_df.columns = ['Pedido', 'Proceso', 'Avance Real', 'Días para Finalizar', 'Avance Tiempo (%)']
-    
-    # Mostrar tabla
-    st.dataframe(display_df)
-    
-    # Crear gráfico comparativo de avance real vs tiempo
-    st.subheader("Comparativa de Avance Real vs Tiempo Transcurrido")
-    
-    for pedido in processes_with_metrics['pedido'].unique():
-        pedido_df = processes_with_metrics[processes_with_metrics['pedido'] == pedido]
-        
-        fig = go.Figure()
-        
-        # Añadir barras para el avance real
-        fig.add_trace(go.Bar(
-            x=pedido_df['proceso'],
-            y=pedido_df['porcentaje_num'],
-            name='Avance Real (%)',
-            marker_color='royalblue'
-        ))
-        
-        # Añadir barras para el avance de tiempo
-        fig.add_trace(go.Bar(
-            x=pedido_df['proceso'],
-            y=pedido_df['porcentaje_tiempo'],
-            name='Tiempo Transcurrido (%)',
-            marker_color='orange'
-        ))
-        
-        # Configurar el diseño
-        fig.update_layout(
-            title=f'Pedido: {pedido}',
-            xaxis_title='Proceso',
-            yaxis_title='Porcentaje (%)',
-            barmode='group',
-            yaxis=dict(range=[0, 105]),
-            height=400,
-            width=800
-        )
-        
-        st.plotly_chart(fig)
-        
-        # Línea divisoria entre pedidos
-        st.markdown("---")
-else:
-    st.warning("No hay datos disponibles para calcular el avance de procesos.")
-                                
+                if not processes_df.empty:
+                    processes_with_metrics = calculate_process_metrics(processes_df, current_date)
+                    
+                    # Preparar dataframe para visualización
+                    display_df = processes_with_metrics[['pedido', 'proceso', 'porcentaje', 'dias_para_finalizar', 'porcentaje_tiempo_fmt']]
+                    display_df.columns = ['Pedido', 'Proceso', 'Avance Real', 'Días para Finalizar', 'Avance Tiempo (%)']
+                    
+                    # Mostrar tabla
+                    st.dataframe(display_df)
+                    
+                    # Crear gráfico comparativo de avance real vs tiempo
+                    st.subheader("Comparativa de Avance Real vs Tiempo Transcurrido")
+                    
+                    for pedido in processes_with_metrics['pedido'].unique():
+                        pedido_df = processes_with_metrics[processes_with_metrics['pedido'] == pedido]
+                        
+                        fig = go.Figure()
+                        
+                        # Añadir barras para el avance real
+                        fig.add_trace(go.Bar(
+                            x=pedido_df['proceso'],
+                            y=pedido_df['porcentaje_num'],
+                            name='Avance Real (%)',
+                            marker_color='royalblue'
+                        ))
+                        
+                        # Añadir barras para el avance de tiempo
+                        fig.add_trace(go.Bar(
+                            x=pedido_df['proceso'],
+                            y=pedido_df['porcentaje_tiempo'],
+                            name='Tiempo Transcurrido (%)',
+                            marker_color='orange'
+                        ))
+                        
+                        # Configurar el diseño
+                        fig.update_layout(
+                            title=f'Pedido: {pedido}',
+                            xaxis_title='Proceso',
+                            yaxis_title='Porcentaje (%)',
+                            barmode='group',
+                            yaxis=dict(range=[0, 105]),
+                            height=400,
+                            width=800
+                        )
+                        
+                        st.plotly_chart(fig)
+                        
+                        # Línea divisoria entre pedidos
+                        st.markdown("---")
+                else:
+                    st.warning("No hay datos disponibles para calcular el avance de procesos.")
+                                                
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {e}")
     else:
