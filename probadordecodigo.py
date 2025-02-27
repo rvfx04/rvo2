@@ -405,13 +405,11 @@ if st.button("Ejecutar Consulta"):
                 
                 # Crear un diccionario para buscar el pedido correspondiente en el DataFrame df
                 # Convertir todas las claves a string y minúsculas para comparación consistente
-                df_dict = {str(row['PEDIDO']).lower(): row for _, row in df.iterrows() if 'PEDIDO' in df.columns}
+                # Crear un diccionario para buscar el pedido correspondiente en el DataFrame df
+                df_dict = {row['PEDIDO']: row for _, row in df.iterrows() if 'PEDIDO' in df.columns}
 
                 for _, row in df_postgres.iterrows():
-                    # Convertir pedido a string y minúsculas para comparación consistente
-                    pedido_original = row['pedido']  # Mantener formato original para mostrar
-                    pedido_key = str(pedido_original).lower()  # Clave para buscar en el diccionario
-                    
+                    pedido = row['pedido']
                     for proceso in procesos:
                         # Las fechas ya deben ser objetos date a este punto
                         fecha_inicio = row[f'star_{proceso}']
@@ -420,24 +418,47 @@ if st.button("Ejecutar Consulta"):
                         # Verificar que las fechas no sean nulas
                         if pd.notna(fecha_inicio) and pd.notna(fecha_fin):
                             try:
-                                # Código de conversión de fechas...
+                                # Intentar convertir a datetime primero
+                                if hasattr(fecha_inicio, 'date'):
+                                    # Es un objeto timestamp o datetime
+                                    fecha_inicio = fecha_inicio.date()
+                                else:
+                                    # Es otro tipo de objeto, intentar convertir
+                                    fecha_inicio = pd.to_datetime(fecha_inicio).date()
+                                    
+                                if hasattr(fecha_fin, 'date'):
+                                    fecha_fin = fecha_fin.date()
+                                else:
+                                    fecha_fin = pd.to_datetime(fecha_fin).date()
+                                
+                                fecha_actual = datetime.now().date()  # Obtener solo la fecha actual
+                                
+                                diferencia_dias = (fecha_fin - fecha_actual).days
+                                
+                                # Evitar división por cero
+                                if (fecha_fin - fecha_inicio).days > 0:
+                                    porcentaje_avance = ((fecha_actual - fecha_inicio).days / (fecha_fin - fecha_inicio).days) * 100
+                                    # Limitar el porcentaje entre 0 y 100
+                                    porcentaje_avance = max(0, min(100, porcentaje_avance))
+                                else:
+                                    porcentaje_avance = 100 if fecha_actual >= fecha_fin else 0
                                 
                                 # Agregar el valor de avance de la primera tabla según el tipo de proceso
                                 avance_valor = ""
-                                if pedido_key in df_dict:
+                                if pedido in df_dict:
                                     if proceso == 'armado':
-                                        avance_valor = df_dict[pedido_key]['KG_ARMP']
+                                        avance_valor = df_dict[pedido]['KG_ARMP']
                                     elif proceso == 'tenido':
-                                        avance_valor = df_dict[pedido_key]['KG_TENIDP']
+                                        avance_valor = df_dict[pedido]['KG_TENIDP']
                                     elif proceso == 'telaprob':
-                                        avance_valor = df_dict[pedido_key]['KG_TELAPROBP']
+                                        avance_valor = df_dict[pedido]['KG_TELAPROBP']
                                     elif proceso == 'corte':
-                                        avance_valor = df_dict[pedido_key]['CORTADOP']
+                                        avance_valor = df_dict[pedido]['CORTADOP']
                                     elif proceso == 'costura':
-                                        avance_valor = df_dict[pedido_key]['COSIDOP']
+                                        avance_valor = df_dict[pedido]['COSIDOP']
                                 
                                 avance_data.append({
-                                    'PEDIDO': pedido_original,  # Usar el formato original para mostrar
+                                    'PEDIDO': pedido,
                                     'PROCESO': proceso,
                                     'RETRASO_DIAS': diferencia_dias,
                                     'AVANCE_HOY': f"{porcentaje_avance:.2f}%",
@@ -445,7 +466,7 @@ if st.button("Ejecutar Consulta"):
                                 })
                             except Exception as e:
                                 # En caso de error, mostrar el proceso que falló pero continuar con los demás
-                                st.warning(f"Error al procesar fecha para {pedido_original}, proceso {proceso}: {e}")
+                                st.warning(f"Error al procesar fecha para {pedido}, proceso {proceso}: {e}")
                                 continue
 
                 # Crear el DataFrame de avance si hay datos - FIXED INDENTATION
