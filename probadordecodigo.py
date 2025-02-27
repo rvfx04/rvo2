@@ -397,15 +397,15 @@ if st.button("Ejecutar Consulta"):
 
                 # Modificar la parte problemática del código (líneas 402-433 aproximadamente)
                 # Modificar la parte problemática del código evitando el uso de isinstance()
-                procesos = ['ARM', 'TENID', 'TELAPROB', 'CORTE', 'COSIDO']
+                procesos = ['armado', 'tenido', 'telaaprob', 'corte', 'costura']
                 avance_data = []
 
-                for _, row in df.iterrows():
-                    pedido = row['PEDIDO']
+                for _, row in df_postgres.iterrows():
+                    pedido = row['pedido']
                     for proceso in procesos:
                         # Las fechas ya deben ser objetos date a este punto
-                        fecha_inicio = row[f'FMIN{proceso}']
-                        fecha_fin = row[f'FMAX{proceso}']
+                        fecha_inicio = row[f'star_{proceso}']
+                        fecha_fin = row[f'finish_{proceso}']
                         
                         # Verificar que las fechas no sean nulas
                         if pd.notna(fecha_inicio) and pd.notna(fecha_fin):
