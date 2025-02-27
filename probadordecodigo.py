@@ -464,7 +464,7 @@ if st.button("Ejecutar Consulta"):
                                     'PEDIDO': pedido_original,  # Usar el formato original para mostrar
                                     'PROCESO': proceso,
                                     'RETRASO_DIAS': diferencia_dias,
-                                    'AVANCE_HOY': f"{porcentaje_avance:.2f}%",
+                                    'AVANCE_HOY': f"{porcentaje_avance:.0f}%",
                                     'AVANCE': avance_valor  # Nueva columna
                                 })
                             except Exception as e:
