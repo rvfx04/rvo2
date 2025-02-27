@@ -404,75 +404,76 @@ if st.button("Ejecutar Consulta"):
 
                 # Crear un diccionario para buscar el pedido correspondiente en el DataFrame df
                 # Esto permite relacionar los datos entre ambas tablas
-                df_dict = {row['PEDIDO']: row for _, row in df.iterrows() if 'PEDIDO' in df.columns}
+                # Crear un diccionario para buscar el pedido correspondiente en el DataFrame df
+df_dict = {row['PEDIDO']: row for _, row in df.iterrows() if 'PEDIDO' in df.columns}
 
-                for _, row in df_postgres.iterrows():
-                    pedido = row['pedido']
-                    for proceso in procesos:
-                        # Las fechas ya deben ser objetos date a este punto
-                        fecha_inicio = row[f'star_{proceso}']
-                        fecha_fin = row[f'finish_{proceso}']
-                        
-                        # Verificar que las fechas no sean nulas
-                        if pd.notna(fecha_inicio) and pd.notna(fecha_fin):
-                            try:
-                                # Intentar convertir a datetime primero
-                                if hasattr(fecha_inicio, 'date'):
-                                    # Es un objeto timestamp o datetime
-                                    fecha_inicio = fecha_inicio.date()
-                                else:
-                                    # Es otro tipo de objeto, intentar convertir
-                                    fecha_inicio = pd.to_datetime(fecha_inicio).date()
-                                    
-                                if hasattr(fecha_fin, 'date'):
-                                    fecha_fin = fecha_fin.date()
-                                else:
-                                    fecha_fin = pd.to_datetime(fecha_fin).date()
-                                
-                                fecha_actual = datetime.now().date()  # Obtener solo la fecha actual
-                                
-                                diferencia_dias = (fecha_fin - fecha_actual).days
-                                
-                                # Evitar división por cero
-                                #if (fecha_fin - fecha_inicio).days > 0:
-                                porcentaje_avance = ((fecha_actual - fecha_inicio).days / (fecha_fin - fecha_inicio).days) * 100
-                                #    # Limitar el porcentaje entre 0 y 100
-                                #    porcentaje_avance = max(0, min(100, porcentaje_avance))
-                                #else:
-                                #    porcentaje_avance = 100 if fecha_actual >= fecha_fin else 0
-                                
-                                # Agregar el valor de avance de la primera tabla según el tipo de proceso
-                                avance_valor = ""
-                                if pedido in df_dict:
-                                    if proceso == 'armado':
-                                        avance_valor = df_dict[pedido]['KG_ARMP']
-                                    elif proceso == 'tenido':
-                                        avance_valor = df_dict[pedido]['KG_TENIDP']
-                                    elif proceso == 'telaprob':
-                                        avance_valor = df_dict[pedido]['KG_TELAPROBP']
-                                    elif proceso == 'corte':
-                                        avance_valor = df_dict[pedido]['CORTADOP']
-                                    elif proceso == 'costura':
-                                        avance_valor = df_dict[pedido]['COSIDOP']
-                                
-                                avance_data.append({
-                                    'PEDIDO': pedido,
-                                    'PROCESO': proceso,
-                                    'RETRASO_DIAS': diferencia_dias,
-                                    'AVANCE_HOY': f"{porcentaje_avance:.2f}%",
-                                    'AVANCE': avance_valor  # Nueva columna
-                                })
-                            except Exception as e:
-                                # En caso de error, mostrar el proceso que falló pero continuar con los demás
-                                st.warning(f"Error al procesar fecha para {pedido}, proceso {proceso}: {e}")
-                                continue
+for _, row in df_postgres.iterrows():
+    pedido = row['pedido']
+    for proceso in procesos:
+        # Las fechas ya deben ser objetos date a este punto
+        fecha_inicio = row[f'star_{proceso}']
+        fecha_fin = row[f'finish_{proceso}']
+        
+        # Verificar que las fechas no sean nulas
+        if pd.notna(fecha_inicio) and pd.notna(fecha_fin):
+            try:
+                # Intentar convertir a datetime primero
+                if hasattr(fecha_inicio, 'date'):
+                    # Es un objeto timestamp o datetime
+                    fecha_inicio = fecha_inicio.date()
+                else:
+                    # Es otro tipo de objeto, intentar convertir
+                    fecha_inicio = pd.to_datetime(fecha_inicio).date()
+                    
+                if hasattr(fecha_fin, 'date'):
+                    fecha_fin = fecha_fin.date()
+                else:
+                    fecha_fin = pd.to_datetime(fecha_fin).date()
+                
+                fecha_actual = datetime.now().date()  # Obtener solo la fecha actual
+                
+                diferencia_dias = (fecha_fin - fecha_actual).days
+                
+                # Evitar división por cero
+                if (fecha_fin - fecha_inicio).days > 0:
+                    porcentaje_avance = ((fecha_actual - fecha_inicio).days / (fecha_fin - fecha_inicio).days) * 100
+                    # Limitar el porcentaje entre 0 y 100
+                    porcentaje_avance = max(0, min(100, porcentaje_avance))
+                else:
+                    porcentaje_avance = 100 if fecha_actual >= fecha_fin else 0
+                
+                # Agregar el valor de avance de la primera tabla según el tipo de proceso
+                avance_valor = ""
+                if pedido in df_dict:
+                    if proceso == 'armado':
+                        avance_valor = df_dict[pedido]['KG_ARMP']
+                    elif proceso == 'tenido':
+                        avance_valor = df_dict[pedido]['KG_TENIDP']
+                    elif proceso == 'telaprob':
+                        avance_valor = df_dict[pedido]['KG_TELAPROBP']
+                    elif proceso == 'corte':
+                        avance_valor = df_dict[pedido]['CORTADOP']
+                    elif proceso == 'costura':
+                        avance_valor = df_dict[pedido]['COSIDOP']
+                
+                avance_data.append({
+                    'PEDIDO': pedido,
+                    'PROCESO': proceso,
+                    'RETRASO_DIAS': diferencia_dias,
+                    'AVANCE_HOY': f"{porcentaje_avance:.2f}%",
+                    'AVANCE': avance_valor  # Nueva columna
+                })
+            except Exception as e:
+                # En caso de error, mostrar el proceso que falló pero continuar con los demás
+                st.warning(f"Error al procesar fecha para {pedido}, proceso {proceso}: {e}")
+                continue
 
-            # Crear el DataFrame de avance si hay datos
-            if avance_data:
-                df_avance = pd.DataFrame(avance_data)
-                st.dataframe(df_avance)
-            else:
-                st.warning("No hay datos de avance disponibles.")
+# Crear el DataFrame de avance si hay datos - FIXED INDENTATION
+if avance_data:
+    df_avance = pd.DataFrame(avance_data)
+    st.dataframe(df_avance)
+else:
+    st.warning("No hay datos de avance disponibles.")
                                                                             
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {e}")
