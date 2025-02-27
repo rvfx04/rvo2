@@ -476,7 +476,7 @@ if st.button("Ejecutar Consulta"):
                 # Crear el DataFrame de avance si hay datos - FIXED INDENTATION
                 if avance_data:
                     df_avance = pd.DataFrame(avance_data)
-                    #st.dataframe(df_avance)
+                    st.dataframe(df_avance)
                     # Después de crear df_avance y mostrarlo
                 if 'df_avance' in locals() and not df_avance.empty:
                     #st.subheader("Situación de procesos por pedido")
