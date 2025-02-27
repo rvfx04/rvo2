@@ -348,8 +348,6 @@ def run_query(pedidos, db_type='mssql'):
 # Interfaz de usuario
 pedidos_input = st.text_input("Ingresa los números de pedido (separados por coma)")
 
-# ... (código anterior se mantiene igual)
-
 if st.button("Ejecutar Consulta"):
     if pedidos_input:
         try:
@@ -359,7 +357,20 @@ if st.button("Ejecutar Consulta"):
             df = run_query(pedidos, db_type='mssql')
             df_postgres = run_query(pedidos, db_type='postgres')
             
-            # Después de st.dataframe(df_postgres), agrega este código:
+            if df.empty:
+                st.warning("No se encontraron datos para estos pedidos en SQL Server.")
+            else:
+                # Agregar filas de resumen
+                df = add_summary_row(df, db_type='mssql')
+                df_postgres = add_summary_row(df_postgres, db_type='postgres')
+                
+                # Mostrar datos detallados
+                st.subheader("Detalle por Pedido")
+                st.dataframe(df)
+                
+                st.subheader("Info Plan")
+                st.dataframe(df_postgres)
+                # Después de st.dataframe(df_postgres), agrega este código:
 
 # Crear tabla de avance de procesos
 st.subheader("Avance de Procesos por Pedido")
@@ -544,3 +555,8 @@ if not processes_df.empty:
         st.markdown("---")
 else:
     st.warning("No hay datos disponibles para calcular el avance de procesos.")
+                
+        except Exception as e:
+            st.error(f"Error al ejecutar la consulta: {e}")
+    else:
+        st.warning("Por favor ingresa un número de pedido.")
