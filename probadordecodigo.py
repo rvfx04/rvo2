@@ -350,6 +350,137 @@ pedidos_input = st.text_input("Ingresa los números de pedido (separados por com
 
 # ... (código anterior se mantiene igual)
 
+# ... (código anterior se mantiene igual)
+
+# Definir la función prepare_process_progress
+def prepare_process_progress(df_mssql, df_postgres):
+    """Prepara un dataframe con el avance de los procesos."""
+    # Crear un dataframe base con los pedidos
+    if df_mssql.empty or df_postgres.empty:
+        return pd.DataFrame()
+    
+    # Unir los dataframes por pedido
+    processes_df = pd.DataFrame()
+    
+    for _, row in df_mssql.iterrows():
+        if row['PEDIDO'] == 'RESUMEN':
+            continue
+            
+        pedido = row['PEDIDO']
+        postgres_row = df_postgres[df_postgres['pedido'] == pedido]
+        
+        if postgres_row.empty:
+            continue
+        
+        # Para cada proceso, calcular el avance
+        processes = [
+            {
+                'pedido': pedido,
+                'proceso': 'Armado',
+                'inicio': postgres_row['star_armado'].values[0] if not postgres_row['star_armado'].isna().all() else None,
+                'fin': postgres_row['finish_armado'].values[0] if not postgres_row['finish_armado'].isna().all() else None,
+                'porcentaje': row['KG_ARMP']
+            },
+            {
+                'pedido': pedido,
+                'proceso': 'Teñido',
+                'inicio': postgres_row['star_tenido'].values[0] if not postgres_row['star_tenido'].isna().all() else None,
+                'fin': postgres_row['finish_tenido'].values[0] if not postgres_row['finish_tenido'].isna().all() else None,
+                'porcentaje': row['KG_TENIDP']
+            },
+            {
+                'pedido': pedido,
+                'proceso': 'Tela Aprobada',
+                'inicio': postgres_row['star_telaprob'].values[0] if not postgres_row['star_telaprob'].isna().all() else None,
+                'fin': postgres_row['finish_telaprob'].values[0] if not postgres_row['finish_telaprob'].isna().all() else None,
+                'porcentaje': row['KG_TELAPROBP']
+            },
+            {
+                'pedido': pedido,
+                'proceso': 'Corte',
+                'inicio': postgres_row['star_corte'].values[0] if not postgres_row['star_corte'].isna().all() else None,
+                'fin': postgres_row['finish_corte'].values[0] if not postgres_row['finish_corte'].isna().all() else None,
+                'porcentaje': row['CORTADOP']
+            },
+            {
+                'pedido': pedido,
+                'proceso': 'Costura',
+                'inicio': postgres_row['star_costura'].values[0] if not postgres_row['star_costura'].isna().all() else None,
+                'fin': postgres_row['finish_costura'].values[0] if not postgres_row['finish_costura'].isna().all() else None,
+                'porcentaje': row['COSIDOP']
+            }
+        ]
+        
+        temp_df = pd.DataFrame(processes)
+        processes_df = pd.concat([processes_df, temp_df], ignore_index=True)
+    
+    return processes_df
+
+
+# Definir la función calculate_process_metrics
+def calculate_process_metrics(processes_df, current_date):
+    """Calcula las métricas de avance para cada proceso."""
+    if processes_df.empty:
+        return pd.DataFrame()
+    
+    # Convertir porcentajes a números
+    processes_df['porcentaje_num'] = processes_df['porcentaje'].apply(
+        lambda x: float(str(x).rstrip('%')) if pd.notna(x) and isinstance(x, str) else 0
+    )
+    
+    # Calcular días hasta finalización
+    def calc_days_to_finish(end_date):
+        if pd.isna(end_date):
+            return None
+        if isinstance(end_date, str):
+            try:
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            except ValueError:
+                return None
+        return (end_date - current_date).days
+    
+    processes_df['dias_para_finalizar'] = processes_df['fin'].apply(calc_days_to_finish)
+    
+    # Calcular el porcentaje de tiempo transcurrido
+    def calc_time_percentage(row):
+        if pd.isna(row['inicio']) or pd.isna(row['fin']):
+            return None
+            
+        try:
+            if isinstance(row['inicio'], str):
+                start_date = datetime.strptime(row['inicio'], '%Y-%m-%d').date()
+            else:
+                start_date = row['inicio']
+                
+            if isinstance(row['fin'], str):
+                end_date = datetime.strptime(row['fin'], '%Y-%m-%d').date()
+            else:
+                end_date = row['fin']
+                
+            total_days = (end_date - start_date).days
+            elapsed_days = (current_date - start_date).days
+            
+            if total_days <= 0:
+                return 100.0
+                
+            percentage = min(100.0, max(0.0, (elapsed_days / total_days) * 100))
+            return round(percentage, 1)
+        except Exception:
+            return None
+    
+    processes_df['porcentaje_tiempo'] = processes_df.apply(calc_time_percentage, axis=1)
+    
+    # Formatear porcentajes para visualización
+    processes_df['porcentaje_tiempo_fmt'] = processes_df['porcentaje_tiempo'].apply(
+        lambda x: f"{x:.1f}%" if pd.notna(x) else "N/A"
+    )
+    
+    return processes_df
+
+
+# Interfaz de usuario
+pedidos_input = st.text_input("Ingresa los números de pedido (separados por coma)")
+
 if st.button("Ejecutar Consulta"):
     if pedidos_input:
         try:
@@ -373,10 +504,6 @@ if st.button("Ejecutar Consulta"):
                 st.subheader("Info Plan")
                 st.dataframe(df_postgres)
 
-                # --------------------------------------------------
-                # Nueva sección añadida para tablas y gráficos adicionales
-                # --------------------------------------------------
-                
                 # Crear tabla de avance de procesos
                 st.subheader("Avance de Procesos por Pedido")
                 current_date = datetime.now().date()
@@ -435,7 +562,6 @@ if st.button("Ejecutar Consulta"):
                         st.markdown("---")
                 else:
                     st.warning("No hay datos disponibles para calcular el avance de procesos.")
-                # --------------------------------------------------
                 
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {e}")
