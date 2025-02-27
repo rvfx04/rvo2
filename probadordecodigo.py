@@ -476,31 +476,31 @@ if st.button("Ejecutar Consulta"):
                     df_avance = pd.DataFrame(avance_data)
                     st.dataframe(df_avance)
                     # Después de crear df_avance y mostrarlo
-if 'df_avance' in locals() and not df_avance.empty:
-    st.subheader("Procesos con Avance Bajo")
-    
-    # Convertir la columna AVANCE_HOY a numérico (quitar el símbolo %)
-    df_avance['AVANCE_HOY_NUM'] = df_avance['AVANCE_HOY'].str.rstrip('%').astype(float)
-    
-    # Filtrar por proceso y su límite correspondiente
-    filtro_condiciones = (
-        ((df_avance['PROCESO'] == 'armado') & (df_avance['AVANCE_HOY_NUM'] < 110)) |
-        ((df_avance['PROCESO'] == 'tenido') & (df_avance['AVANCE_HOY_NUM'] < 110)) |
-        ((df_avance['PROCESO'] == 'telaprob') & (df_avance['AVANCE_HOY_NUM'] < 100)) |
-        ((df_avance['PROCESO'] == 'corte') & (df_avance['AVANCE_HOY_NUM'] < 105)) |
-        ((df_avance['PROCESO'] == 'costura') & (df_avance['AVANCE_HOY_NUM'] < 105))
-    )
-    
-    df_procesos_bajos = df_avance[filtro_condiciones].copy()
-    
-    # Eliminar la columna auxiliar que usamos para el filtro
-    df_procesos_bajos = df_procesos_bajos.drop('AVANCE_HOY_NUM', axis=1)
-    
-    # Mostrar la tabla filtrada
-    if not df_procesos_bajos.empty:
-        st.dataframe(df_procesos_bajos)
-    else:
-        st.info("No hay procesos con avance bajo según los criterios establecidos.")
+                if 'df_avance' in locals() and not df_avance.empty:
+                    st.subheader("Procesos con Avance Bajo")
+                    
+                    # Convertir la columna AVANCE_HOY a numérico (quitar el símbolo %)
+                    df_avance['AVANCE_HOY_NUM'] = df_avance['AVANCE_HOY'].str.rstrip('%').astype(float)
+                    
+                    # Filtrar por proceso y su límite correspondiente
+                    filtro_condiciones = (
+                        ((df_avance['PROCESO'] == 'armado') & (df_avance['AVANCE_HOY_NUM'] < 110)) |
+                        ((df_avance['PROCESO'] == 'tenido') & (df_avance['AVANCE_HOY_NUM'] < 110)) |
+                        ((df_avance['PROCESO'] == 'telaprob') & (df_avance['AVANCE_HOY_NUM'] < 100)) |
+                        ((df_avance['PROCESO'] == 'corte') & (df_avance['AVANCE_HOY_NUM'] < 105)) |
+                        ((df_avance['PROCESO'] == 'costura') & (df_avance['AVANCE_HOY_NUM'] < 105))
+                    )
+                    
+                    df_procesos_bajos = df_avance[filtro_condiciones].copy()
+                    
+                    # Eliminar la columna auxiliar que usamos para el filtro
+                    df_procesos_bajos = df_procesos_bajos.drop('AVANCE_HOY_NUM', axis=1)
+                    
+                    # Mostrar la tabla filtrada
+                    if not df_procesos_bajos.empty:
+                        st.dataframe(df_procesos_bajos)
+                    else:
+                        st.info("No hay procesos con avance bajo según los criterios establecidos.")
                 else:
                     st.warning("No hay datos de avance disponibles.")
                                                                                                             
