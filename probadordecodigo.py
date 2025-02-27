@@ -435,12 +435,12 @@ if st.button("Ejecutar Consulta"):
                                 diferencia_dias = (fecha_fin - fecha_actual).days
                                 
                                 # Evitar división por cero
-                                if (fecha_fin - fecha_inicio).days > 0:
-                                    porcentaje_avance = ((fecha_actual - fecha_inicio).days / (fecha_fin - fecha_inicio).days) * 100
+                                #if (fecha_fin - fecha_inicio).days > 0:
+                                porcentaje_avance = ((fecha_actual - fecha_inicio).days / (fecha_fin - fecha_inicio).days) * 100
                                     # Limitar el porcentaje entre 0 y 100
-                                    porcentaje_avance = max(0, min(100, porcentaje_avance))
-                                else:
-                                    porcentaje_avance = 100 if fecha_actual >= fecha_fin else 0
+                                    #porcentaje_avance = max(0, min(100, porcentaje_avance))
+                                #else:
+                                    #porcentaje_avance = 100 if fecha_actual >= fecha_fin else 0
                                 
                                 # Agregar el valor de avance de la primera tabla según el tipo de proceso
                                 avance_valor = ""
