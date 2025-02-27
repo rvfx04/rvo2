@@ -8,7 +8,7 @@ import psycopg2
 
 # Configuración de la página
 st.set_page_config(layout="wide")
-st.title("Progreso de Pedidos Consolidado")
+st.title("Status progreso de procesos por pedido")
 
 # Funciones de conexión a la base de datos
 def connect_db(db_type='mssql'):
@@ -479,7 +479,7 @@ if st.button("Ejecutar Consulta"):
                     #st.dataframe(df_avance)
                     # Después de crear df_avance y mostrarlo
                 if 'df_avance' in locals() and not df_avance.empty:
-                    st.subheader("Situación de procesos por pedido")
+                    #st.subheader("Situación de procesos por pedido")
                     
                     # Convertir la columna AVANCE_HOY a numérico (quitar el símbolo %)
                     df_avance['AVANCE_NUM'] = df_avance['AVANCE'].str.rstrip('%').astype(float)
