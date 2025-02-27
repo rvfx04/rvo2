@@ -384,7 +384,8 @@ if st.button("Ejecutar Consulta"):
                     for proceso in procesos:
                         fecha_inicio = row[f'FMIN{proceso}'].date()  # Convertir a solo fecha
                         fecha_fin = row[f'FMAX{proceso}'].date()    # Convertir a solo fecha
-                        
+                        write fecha_inicio
+                        write fecha_fin
                         if pd.notna(fecha_inicio) and pd.notna(fecha_fin):
                             fecha_actual = datetime.now().date()  # Obtener solo la fecha actual
                             diferencia_dias = (fecha_fin - fecha_actual).days
