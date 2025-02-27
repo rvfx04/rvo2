@@ -397,7 +397,7 @@ if st.button("Ejecutar Consulta"):
 
                 # Modificar la parte problemática del código (líneas 402-433 aproximadamente)
                 # Modificar la parte problemática del código evitando el uso de isinstance()
-                procesos = ['armado', 'tenido', 'telaaprob', 'corte', 'costura']
+                procesos = ['armado', 'tenido', 'telaprob', 'corte', 'costura']
                 avance_data = []
 
                 for _, row in df_postgres.iterrows():
