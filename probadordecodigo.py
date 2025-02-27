@@ -382,10 +382,11 @@ if st.button("Ejecutar Consulta"):
                 for _, row in df.iterrows():
                     pedido = row['PEDIDO']
                     for proceso in procesos:
+                        df[f'FMIN{proceso}'] = pd.to_datetime(df[f'FMIN{proceso}'])
+                        df[f'FMAX{proceso}'] = pd.to_datetime(df[f'FMAX{proceso}'])
                         fecha_inicio = row[f'FMIN{proceso}'].date()  # Convertir a solo fecha
                         fecha_fin = row[f'FMAX{proceso}'].date()    # Convertir a solo fecha
-                        write fecha_inicio
-                        write fecha_fin
+                        
                         if pd.notna(fecha_inicio) and pd.notna(fecha_fin):
                             fecha_actual = datetime.now().date()  # Obtener solo la fecha actual
                             diferencia_dias = (fecha_fin - fecha_actual).days
