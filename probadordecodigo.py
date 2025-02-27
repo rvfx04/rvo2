@@ -467,12 +467,12 @@ if st.button("Ejecutar Consulta"):
                                 st.warning(f"Error al procesar fecha para {pedido}, proceso {proceso}: {e}")
                                 continue
 
-                            # Crear el DataFrame de avance si hay datos
-                            if avance_data:
-                                df_avance = pd.DataFrame(avance_data)
-                                st.dataframe(df_avance)
-                            else:
-                                st.warning("No hay datos de avance disponibles.")
+                        # Crear el DataFrame de avance si hay datos
+                        if avance_data:
+                            df_avance = pd.DataFrame(avance_data)
+                            st.dataframe(df_avance)
+                        else:
+                            st.warning("No hay datos de avance disponibles.")
                                                                             
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {e}")
