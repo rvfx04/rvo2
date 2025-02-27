@@ -439,8 +439,8 @@ if st.button("Ejecutar Consulta"):
                                 diferencia_dias = (fecha_fin - fecha_actual).days
                                 
                                 # Evitar división por cero
-                                #if (fecha_fin - fecha_inicio).days > 0:
-                                porcentaje_avance = ((fecha_actual - fecha_inicio).days / (fecha_fin - fecha_inicio).days) * 100
+                                if (fecha_fin - fecha_inicio).days > 0:
+                                    porcentaje_avance = ((fecha_actual - fecha_inicio).days / (fecha_fin - fecha_inicio).days) * 100
                                     # Limitar el porcentaje entre 0 y 100
                                     #porcentaje_avance = max(0, min(100, porcentaje_avance))
                                 #else:
@@ -476,7 +476,7 @@ if st.button("Ejecutar Consulta"):
                 # Crear el DataFrame de avance si hay datos - FIXED INDENTATION
                 if avance_data:
                     df_avance = pd.DataFrame(avance_data)
-                    st.dataframe(df_avance)
+                    #st.dataframe(df_avance)
                     # Después de crear df_avance y mostrarlo
                 if 'df_avance' in locals() and not df_avance.empty:
                     #st.subheader("Situación de procesos por pedido")
