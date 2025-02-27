@@ -463,7 +463,7 @@ if st.button("Ejecutar Consulta"):
                                 avance_data.append({
                                     'PEDIDO': pedido_original,  # Usar el formato original para mostrar
                                     'PROCESO': proceso,
-                                    'Avance_Real': avance_valor,  # Nueva columna
+                                    'AVANCE': avance_valor,  # Nueva columna
                                     
                                     'Días(-)': diferencia_dias,
                                     'Avance_Prog': f"{porcentaje_avance:.0f}%"
