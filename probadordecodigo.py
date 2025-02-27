@@ -32,6 +32,22 @@ def connect_db(db_type='mssql'):
     else:
         raise ValueError("Tipo de base de datos no soportado.")
 
+# Función para convertir columnas de fecha a solo fecha (sin hora)
+def convert_date_columns(df):
+    """Convierte todas las columnas de fecha a solo fecha (sin hora)."""
+    date_columns = [col for col in df.columns if any(x in col.upper() for x in ['FECHA', 'FMIN', 'FMAX', 'F_EMISION', 'F_ENTREGA'])]
+    
+    for col in date_columns:
+        if col in df.columns:
+            # Convertir a datetime primero (si no lo es ya)
+            if df[col].dtype != 'datetime64[ns]':
+                df[col] = pd.to_datetime(df[col], errors='coerce')
+            
+            # Extraer solo la fecha
+            df[col] = df[col].dt.date
+    
+    return df
+
 # Función para agregar filas de resumen
 def add_summary_row(df, db_type='mssql'):
     """Agrega una fila de resumen al DataFrame."""
@@ -340,7 +356,12 @@ def run_query(pedidos, db_type='mssql'):
     else:
         raise ValueError("Tipo de base de datos no soportado.")
     
+    # Leer los datos
     df = pd.read_sql(query, conn, params=tuple(pedidos))
+    
+    # Convertir todas las columnas de fecha a solo fecha
+    df = convert_date_columns(df)
+    
     conn.close()
     return df
 
@@ -370,9 +391,8 @@ if st.button("Ejecutar Consulta"):
                 
                 st.subheader("Info Plan")
                 st.dataframe(df_postgres)
-                                # Mostrar tabla adicional con el avance de cada proceso
-                from datetime import datetime
-
+                
+                # Mostrar tabla adicional con el avance de cada proceso
                 st.subheader("Avance de Procesos por Pedido")
 
                 # Crear un nuevo DataFrame para el avance de procesos
@@ -382,34 +402,45 @@ if st.button("Ejecutar Consulta"):
                 for _, row in df.iterrows():
                     pedido = row['PEDIDO']
                     for proceso in procesos:
-                        df[f'FMIN{proceso}'] = pd.to_datetime(df[f'FMIN{proceso}'])
-                        df[f'FMAX{proceso}'] = pd.to_datetime(df[f'FMAX{proceso}'])
-                        fecha_inicio = row[f'FMIN{proceso}'].date()  # Convertir a solo fecha
-                        fecha_fin = row[f'FMAX{proceso}'].date()    # Convertir a solo fecha
-                        # Imprimir las fechas
-                        print(f"Proceso: {proceso}")
-                        print(f"Fecha de inicio: {fecha_inicio}")
-                        print(f"Fecha de fin: {fecha_fin}")
-                        print("-" * 30)  # Separador para mejor legibilidad
-
+                        # Las fechas ya deben ser objetos date a este punto
+                        fecha_inicio = row[f'FMIN{proceso}']
+                        fecha_fin = row[f'FMAX{proceso}']
+                        
                         if pd.notna(fecha_inicio) and pd.notna(fecha_fin):
                             fecha_actual = datetime.now().date()  # Obtener solo la fecha actual
+                            
+                            # Asegurar que fecha_inicio y fecha_fin son objetos date
+                            if not isinstance(fecha_inicio, datetime.date):
+                                continue
+                            if not isinstance(fecha_fin, datetime.date):
+                                continue
+                                
                             diferencia_dias = (fecha_fin - fecha_actual).days
-                            porcentaje_avance = ((fecha_actual - fecha_inicio).days / (fecha_fin - fecha_inicio).days) * 100
+                            
+                            # Evitar división por cero
+                            if (fecha_fin - fecha_inicio).days > 0:
+                                porcentaje_avance = ((fecha_actual - fecha_inicio).days / (fecha_fin - fecha_inicio).days) * 100
+                                # Limitar el porcentaje entre 0 y 100
+                                porcentaje_avance = max(0, min(100, porcentaje_avance))
+                            else:
+                                porcentaje_avance = 100 if fecha_actual >= fecha_fin else 0
+                                
                             avance_data.append({
                                 'PEDIDO': pedido,
                                 'PROCESO': proceso,
                                 'DIFERENCIA_DIAS': diferencia_dias,
                                 'PORCENTAJE_AVANCE': f"{porcentaje_avance:.2f}%"
                             })
-                                
-                # Crear el DataFrame de avance
-                df_avance = pd.DataFrame(avance_data)
                 
-                # Mostrar el DataFrame de avance
-                st.dataframe(df_avance)
+                # Crear el DataFrame de avance si hay datos
+                if avance_data:
+                    df_avance = pd.DataFrame(avance_data)
+                    st.dataframe(df_avance)
+                else:
+                    st.warning("No hay datos de avance disponibles.")
             
         except Exception as e:
             st.error(f"Error al ejecutar la consulta: {e}")
+            st.exception(e)  # Esto muestra el traceback completo para depuración
     else:
         st.warning("Por favor ingresa un número de pedido.")
