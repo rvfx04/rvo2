@@ -380,67 +380,69 @@ if st.button("Ejecutar Consulta"):
 
                 # Preparar el dataframe para el análisis de avance
                 def prepare_process_progress(df_mssql, df_postgres):
-                    """Prepara un dataframe con el avance de los procesos."""
-                    # Crear un dataframe base con los pedidos
-                    if df_mssql.empty or df_postgres.empty:
-                        return pd.DataFrame()
-                    
-                    # Unir los dataframes por pedido
-                    processes_df = pd.DataFrame()
-                    
-                    for _, row in df_mssql.iterrows():
-                        if row['PEDIDO'] == 'RESUMEN':
-                            continue
-                            
-                        pedido = row['PEDIDO']
-                        postgres_row = df_postgres[df_postgres['pedido'] == pedido]
-                        
-                        if postgres_row.empty:
-                            continue
-                        
-                        # Para cada proceso, calcular el avance
-                        processes = [
-                            {
-                                'pedido': pedido,
-                                'proceso': 'Armado',
-                                'inicio': postgres_row['star_armado'].values[0] if not postgres_row['star_armado'].isna().all() else None,
-                                'fin': postgres_row['finish_armado'].values[0] if not postgres_row['finish_armado'].isna().all() else None,
-                                'porcentaje': row['KG_ARMP']
-                            },
-                            {
-                                'pedido': pedido,
-                                'proceso': 'Teñido',
-                                'inicio': postgres_row['star_tenido'].values[0] if not postgres_row['star_tenido'].isna().all() else None,
-                                'fin': postgres_row['finish_tenido'].values[0] if not postgres_row['finish_tenido'].isna().all() else None,
-                                'porcentaje': row['KG_TENIDP']
-                            },
-                            {
-                                'pedido': pedido,
-                                'proceso': 'Tela Aprobada',
-                                'inicio': postgres_row['star_telaprob'].values[0] if not postgres_row['star_telaprob'].isna().all() else None,
-                                'fin': postgres_row['finish_telaprob'].values[0] if not postgres_row['finish_telaprob'].isna().all() else None,
-                                'porcentaje': row['KG_TELAPROBP']
-                            },
-                            {
-                                'pedido': pedido,
-                                'proceso': 'Corte',
-                                'inicio': postgres_row['star_corte'].values[0] if not postgres_row['star_corte'].isna().all() else None,
-                                'fin': postgres_row['finish_corte'].values[0] if not postgres_row['finish_corte'].isna().all() else None,
-                                'porcentaje': row['CORTADOP']
-                            },
-                            {
-                                'pedido': pedido,
-                                'proceso': 'Costura',
-                                'inicio': postgres_row['star_costura'].values[0] if not postgres_row['star_costura'].isna().all() else None,
-                                'fin': postgres_row['finish_costura'].values[0] if not postgres_row['finish_costura'].isna().all() else None,
-                                'porcentaje': row['COSIDOP']
-                            }
-                        ]
-                        
-                        temp_df = pd.DataFrame(processes)
-                        processes_df = pd.concat([processes_df, temp_df], ignore_index=True)
-                    
-                    return processes_df
+    """Prepara un dataframe con el avance de los procesos."""
+    # Verificar si los DataFrames tienen datos
+    if df_mssql.empty or df_postgres.empty:
+        st.warning("Uno de los DataFrames (MSSQL o PostgreSQL) está vacío.")
+        return pd.DataFrame()
+    
+    # Unir los dataframes por pedido
+    processes_df = pd.DataFrame()
+    
+    for _, row in df_mssql.iterrows():
+        if row['PEDIDO'] == 'RESUMEN':
+            continue
+            
+        pedido = row['PEDIDO']
+        postgres_row = df_postgres[df_postgres['pedido'] == pedido]
+        
+        if postgres_row.empty:
+            st.warning(f"No se encontraron datos en PostgreSQL para el pedido: {pedido}")
+            continue
+        
+        # Para cada proceso, calcular el avance
+        processes = [
+            {
+                'pedido': pedido,
+                'proceso': 'Armado',
+                'inicio': postgres_row['star_armado'].values[0] if not postgres_row['star_armado'].isna().all() else None,
+                'fin': postgres_row['finish_armado'].values[0] if not postgres_row['finish_armado'].isna().all() else None,
+                'porcentaje': row['KG_ARMP']
+            },
+            {
+                'pedido': pedido,
+                'proceso': 'Teñido',
+                'inicio': postgres_row['star_tenido'].values[0] if not postgres_row['star_tenido'].isna().all() else None,
+                'fin': postgres_row['finish_tenido'].values[0] if not postgres_row['finish_tenido'].isna().all() else None,
+                'porcentaje': row['KG_TENIDP']
+            },
+            {
+                'pedido': pedido,
+                'proceso': 'Tela Aprobada',
+                'inicio': postgres_row['star_telaprob'].values[0] if not postgres_row['star_telaprob'].isna().all() else None,
+                'fin': postgres_row['finish_telaprob'].values[0] if not postgres_row['finish_telaprob'].isna().all() else None,
+                'porcentaje': row['KG_TELAPROBP']
+            },
+            {
+                'pedido': pedido,
+                'proceso': 'Corte',
+                'inicio': postgres_row['star_corte'].values[0] if not postgres_row['star_corte'].isna().all() else None,
+                'fin': postgres_row['finish_corte'].values[0] if not postgres_row['finish_corte'].isna().all() else None,
+                'porcentaje': row['CORTADOP']
+            },
+            {
+                'pedido': pedido,
+                'proceso': 'Costura',
+                'inicio': postgres_row['star_costura'].values[0] if not postgres_row['star_costura'].isna().all() else None,
+                'fin': postgres_row['finish_costura'].values[0] if not postgres_row['finish_costura'].isna().all() else None,
+                'porcentaje': row['COSIDOP']
+            }
+        ]
+        
+        temp_df = pd.DataFrame(processes)
+        processes_df = pd.concat([processes_df, temp_df], ignore_index=True)
+    
+    return processes_df
 
                 # Calcular las métricas adicionales
                 def calculate_process_metrics(processes_df, current_date):
