@@ -50,7 +50,7 @@ def convert_date_columns(df):
 
 # Función para ejecutar consultas (usando st.cache_data)
 @st.cache_data
-def run_query(f_emision, f_entrega, clientes, db_type='mssql'):
+def run_query(f_entrega_inicio, f_entrega_fin, clientes, db_type='mssql'):
     """Ejecuta una consulta en la base de datos especificada."""
     conn = connect_db(db_type)
     if db_type == 'mssql':
@@ -163,8 +163,8 @@ def run_query(f_emision, f_entrega, clientes, db_type='mssql'):
                 a.IdtdDocumentoForm = 10
                 AND a.IdtdTipoVenta = 4
                 AND a.bAnulado = 0
-                #AND a.dtFechaEmision >= ?
-                AND a.dtFechaEntrega between >= ? and  <= ?
+                AND a.dtFechaEntrega >= ?
+                AND a.dtFechaEntrega <= ?
                 AND b.NommaeAnexoCliente LIKE ?
             ) gg
         INNER JOIN 
@@ -278,8 +278,8 @@ def run_query(f_emision, f_entrega, clientes, db_type='mssql'):
         ON gg.IdDocumento_OrdenVenta = ff.IdDocumento_OrdenVenta
         """
         # Convertir las fechas a formato de cadena para la consulta
-        f_emision_str = f_emision.strftime('%Y-%m-%d')
-        f_entrega_str = f_entrega.strftime('%Y-%m-%d')
+        f_entrega_inicio_str = f_entrega_inicio.strftime('%Y-%m-%d')
+        f_entrega_fin_str = f_entrega_fin.strftime('%Y-%m-%d')
         
         # Si no se seleccionan clientes, se busca en todos los clientes
         if not clientes:
@@ -288,7 +288,7 @@ def run_query(f_emision, f_entrega, clientes, db_type='mssql'):
         # Ejecutar la consulta para cada cliente
         dfs = []
         for cliente in clientes:
-            params = (f_emision_str, f_entrega_str, f'%{cliente}%')
+            params = (f_entrega_inicio_str, f_entrega_fin_str, f'%{cliente}%')
             df = pd.read_sql(query, conn, params=params)
             dfs.append(df)
         
@@ -332,13 +332,13 @@ def run_query(f_emision, f_entrega, clientes, db_type='mssql'):
     return df
 
 # Interfaz de usuario
-# Selección de fechas
+# Selección de fechas para F_ENTREGA
 today = datetime.today()
-default_f_emision = today - timedelta(days=90)
-default_f_entrega = today + timedelta(days=90)
+default_f_entrega_inicio = today - timedelta(days=90)
+default_f_entrega_fin = today + timedelta(days=90)
 
-f_emision = st.date_input("Fecha de Emisión", default_f_emision)
-f_entrega = st.date_input("Fecha de Entrega", default_f_entrega)
+f_entrega_inicio = st.date_input("Fecha de Entrega Inicial", default_f_entrega_inicio)
+f_entrega_fin = st.date_input("Fecha de Entrega Final", default_f_entrega_fin)
 
 # Selección de clientes
 clientes_input = st.text_input("Ingresa los nombres de los clientes (separados por coma)")
@@ -349,13 +349,13 @@ if st.button("Ejecutar Consulta"):
         clientes = [c.strip() for c in clientes_input.split(',')] if clientes_input else []
         
         # Ejecutar consulta en SQL Server
-        df_mssql = run_query(f_emision, f_entrega, clientes, db_type='mssql')
+        df_mssql = run_query(f_entrega_inicio, f_entrega_fin, clientes, db_type='mssql')
         
         if df_mssql.empty:
             st.warning("No se encontraron datos para los criterios especificados en SQL Server.")
         else:
             # Ejecutar consulta en PostgreSQL usando los pedidos filtrados
-            df_postgres = run_query(f_emision, f_entrega, clientes, db_type='postgres')
+            df_postgres = run_query(f_entrega_inicio, f_entrega_fin, clientes, db_type='postgres')
             
             # Mostrar datos detallados
             st.subheader("Detalle por Pedido (SQL Server)")
