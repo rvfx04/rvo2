@@ -163,8 +163,8 @@ def run_query(f_emision, f_entrega, clientes, db_type='mssql'):
                 a.IdtdDocumentoForm = 10
                 AND a.IdtdTipoVenta = 4
                 AND a.bAnulado = 0
-                AND a.dtFechaEmision >= ?
-                AND a.dtFechaEntrega <= ?
+                #AND a.dtFechaEmision >= ?
+                AND a.dtFechaEntrega between >= ? and  <= ?
                 AND b.NommaeAnexoCliente LIKE ?
             ) gg
         INNER JOIN 
