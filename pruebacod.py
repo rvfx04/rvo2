@@ -296,6 +296,7 @@ def run_query(f_emision, f_entrega, clientes, db_type='mssql'):
         df = pd.concat(dfs, ignore_index=True)
     
     elif db_type == 'postgres':
+        # Consulta de PostgreSQL sin filtros de F_EMISION, F_ENTREGA o CLIENTE
         query = """
         SELECT 
             "IdDocumento_OrdenVenta" as pedido,
@@ -312,27 +313,8 @@ def run_query(f_emision, f_entrega, clientes, db_type='mssql'):
             "finish_corte",
             "finish_costura"
         FROM "docOrdenVenta"
-        WHERE "Fecha_Colocacion" >= %s
-            AND "Fecha_Entrega" <= %s
-            AND "CLIENTE" LIKE %s
         """
-        # Convertir las fechas a formato de cadena para la consulta
-        f_emision_str = f_emision.strftime('%Y-%m-%d')
-        f_entrega_str = f_entrega.strftime('%Y-%m-%d')
-        
-        # Si no se seleccionan clientes, se busca en todos los clientes
-        if not clientes:
-            clientes = ['']
-        
-        # Ejecutar la consulta para cada cliente
-        dfs = []
-        for cliente in clientes:
-            params = (f_emision_str, f_entrega_str, f'%{cliente}%')
-            df = pd.read_sql(query, conn, params=params)
-            dfs.append(df)
-        
-        # Concatenar todos los DataFrames
-        df = pd.concat(dfs, ignore_index=True)
+        df = pd.read_sql(query, conn)
     
     else:
         raise ValueError("Tipo de base de datos no soportado.")
