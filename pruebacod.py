@@ -296,7 +296,10 @@ def run_query(f_emision, f_entrega, clientes, db_type='mssql'):
         df = pd.concat(dfs, ignore_index=True)
     
     elif db_type == 'postgres':
-        # Consulta de PostgreSQL sin filtros de F_EMISION, F_ENTREGA o CLIENTE
+        # Obtener los pedidos filtrados de SQL Server
+        pedidos_filtrados = df_mssql['PEDIDO'].tolist()
+        
+        # Consulta de PostgreSQL para obtener solo los pedidos filtrados
         query = """
         SELECT 
             "IdDocumento_OrdenVenta" as pedido,
@@ -313,8 +316,11 @@ def run_query(f_emision, f_entrega, clientes, db_type='mssql'):
             "finish_corte",
             "finish_costura"
         FROM "docOrdenVenta"
-        """
-        df = pd.read_sql(query, conn)
+        WHERE "IdDocumento_OrdenVenta" IN ({})
+        """.format(','.join(['%s' for _ in pedidos_filtrados]))
+        
+        # Ejecutar la consulta
+        df = pd.read_sql(query, conn, params=tuple(pedidos_filtrados))
     
     else:
         raise ValueError("Tipo de base de datos no soportado.")
@@ -342,18 +348,20 @@ if st.button("Ejecutar Consulta"):
         # Procesar la entrada de clientes
         clientes = [c.strip() for c in clientes_input.split(',')] if clientes_input else []
         
-        # Ejecutar consultas
-        df = run_query(f_emision, f_entrega, clientes, db_type='mssql')
-        df_postgres = run_query(f_emision, f_entrega, clientes, db_type='postgres')
+        # Ejecutar consulta en SQL Server
+        df_mssql = run_query(f_emision, f_entrega, clientes, db_type='mssql')
         
-        if df.empty:
+        if df_mssql.empty:
             st.warning("No se encontraron datos para los criterios especificados en SQL Server.")
         else:
-            # Mostrar datos detallados
-            st.subheader("Detalle por Pedido")
-            st.dataframe(df)
+            # Ejecutar consulta en PostgreSQL usando los pedidos filtrados
+            df_postgres = run_query(f_emision, f_entrega, clientes, db_type='postgres')
             
-            st.subheader("Info Plan")
+            # Mostrar datos detallados
+            st.subheader("Detalle por Pedido (SQL Server)")
+            st.dataframe(df_mssql)
+            
+            st.subheader("Info Plan (PostgreSQL)")
             st.dataframe(df_postgres)
             
             # Mostrar tabla adicional con el avance de cada proceso
@@ -364,8 +372,8 @@ if st.button("Ejecutar Consulta"):
             procesos = ['armado', 'tenido', 'telaprob', 'corte', 'costura']
             avance_data = []
 
-            # Crear un diccionario para buscar el pedido correspondiente en el DataFrame df
-            df_dict = {str(row['PEDIDO']).lower(): row for _, row in df.iterrows() if 'PEDIDO' in df.columns}
+            # Crear un diccionario para buscar el pedido correspondiente en el DataFrame df_mssql
+            df_dict = {str(row['PEDIDO']).lower(): row for _, row in df_mssql.iterrows() if 'PEDIDO' in df_mssql.columns}
 
             for _, row in df_postgres.iterrows():
                 # Convertir pedido a string y minúsculas para comparación consistente
