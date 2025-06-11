@@ -42,7 +42,7 @@ def get_partidas_sin_tenido(dias):
         WHERE a.IdtdDocumentoForm = 138
         AND j.dtFechaHoraFin IS NULL
         AND DATEDIFF(DAY, a.dtFechaEmision, GETDATE()) > {dias}
-        AND a.dtFechaEmision > '01-07-2024'
+        AND a.dtFechaEmision > '01-01-2025'
         and j.bAnulado =0
         AND a.IdmaeAnexo_Cliente IN (47, 49, 91, 93, 111, 1445, 2533, 2637, 4294, 4323, 4374, 4411, 4413, 4469, 5506, 6577)
     """
@@ -79,7 +79,7 @@ AND j.dtFechaHoraFin IS NOT NULL
 AND j.bAnulado = 0
 AND a.FechaCierreAprobado IS NULL
 AND LOWER(k.NommaeRuta) NOT LIKE '%estamp%'
-AND a.dtFechaEmision > '01-07-2024'
+AND a.dtFechaEmision > '01-01-2025'
 AND a.IdmaeAnexo_Cliente IN (47, 49, 91, 93, 111, 1445, 2533, 2637, 4294, 4323, 4374, 4411, 4413, 4469, 5506, 6577)
 GROUP BY a.CoddocOrdenProduccion, 
          a.dtFechaEmision, 
@@ -124,7 +124,7 @@ def get_partidas_con_tenido_sin_aprob_tela_estamp(dias):
         AND a.FechaCierreAprobado IS NULL
         AND LOWER(k.NommaeRuta) LIKE '%estamp%'
         AND DATEDIFF(DAY, j.dtFechaHoraFin, GETDATE()) > {dias}
-        AND a.dtFechaEmision > '01-07-2024'
+        AND a.dtFechaEmision > '01-01-2025'
         AND a.IdmaeAnexo_Cliente IN (47, 49, 91, 93, 111, 1445, 2533, 2637, 4294, 4323, 4374, 4411, 4413, 4469, 5506, 6577)
     """
     df = pd.read_sql(query, conn)
