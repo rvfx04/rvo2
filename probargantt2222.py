@@ -1,160 +1,265 @@
 import streamlit as st
+import pyodbc
 import pandas as pd
-import plotly.graph_objects as go
 from datetime import datetime, timedelta
+from typing import Optional
+import logging
 
-# Generar datos de prueba
-def generar_datos_prueba():
-    fecha_actual = datetime.now().date()
-    fecha_pedido = fecha_actual - timedelta(days=30)
-    fecha_entrega = fecha_actual + timedelta(days=60)
+# Configuración de la página
+st.set_page_config(
+    page_title="Seguimiento de Partidas",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-    procesos = [
-        {
-            "Tarea": "Diseño",
-            "Inicio Programado": fecha_pedido + timedelta(days=5),
-            "Fin Programado": fecha_pedido + timedelta(days=15),
-            "Inicio Real": fecha_pedido + timedelta(days=7),
-            "Fin Real": fecha_pedido + timedelta(days=18),
-            "Avance": 100
-        },
-        {
-            "Tarea": "Fabricación",
-            "Inicio Programado": fecha_pedido + timedelta(days=16),
-            "Fin Programado": fecha_pedido + timedelta(days=45),
-            "Inicio Real": fecha_pedido + timedelta(days=19),
-            "Fin Real": fecha_actual + timedelta(days=5),
-            "Avance": 80
-        },
-        {
-            "Tarea": "Control de Calidad",
-            "Inicio Programado": fecha_pedido + timedelta(days=46),
-            "Fin Programado": fecha_pedido + timedelta(days=55),
-            "Inicio Real": fecha_actual + timedelta(days=6),
-            "Fin Real": fecha_actual + timedelta(days=6),
-            "Avance": 0
-        },
-        {
-            "Tarea": "Empaque y Envío",
-            "Inicio Programado": fecha_pedido + timedelta(days=56),
-            "Fin Programado": fecha_entrega,
-            "Inicio Real": None,
-            "Fin Real": None,
-            "Avance": 0
-        }
-    ]
-    
-    df = pd.DataFrame(procesos)
-    
-    # Convertir fechas a cadenas para evitar problemas con Plotly
-    date_columns = ['Inicio Programado', 'Fin Programado', 'Inicio Real', 'Fin Real']
-    for col in date_columns:
-        df[col] = df[col].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notnull(x) else None)
-    
-    return df, fecha_pedido, fecha_entrega, fecha_actual
-# Crear gráfico de Gantt (con cambios)
-def crear_gantt(df, fecha_pedido, fecha_entrega, fecha_actual):
-    fig = go.Figure()
+# Configuración de logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-    # Convertir fechas a objetos datetime si son strings
-    fecha_pedido = pd.to_datetime(fecha_pedido)
-    fecha_entrega = pd.to_datetime(fecha_entrega)
-    fecha_actual = pd.to_datetime(fecha_actual)
+# Constantes
+CLIENT_IDS = (47, 49, 91, 93, 111, 1445, 2533, 2637, 4294, 4323, 4374, 4411, 4413, 4469, 5506, 6577)
+EXCLUDED_ORDERS = (461444, 452744, 459212, 463325, 471285, 471287, 471290, 458803)
+MIN_DATE = '2024-07-01'
 
-    for i, task in df.iterrows():
-        # Barra de fecha programada
-        inicio = pd.to_datetime(task['Inicio Programado'])
-        fin = pd.to_datetime(task['Fin Programado'])
-        fig.add_trace(go.Bar(
-            x=[fin - inicio],
-            y=[task['Tarea']],
-            orientation='h',
-            base=inicio,
-            marker_color='lightblue',
-            name=task['Tarea']
-        ))
+# Estilos CSS
+st.markdown("""
+    <style>
+    .metric-container {
+        background-color: #f0f2f6;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin: 1rem 0;
+    }
+    .highlight-yellow {
+        background-color: yellow !important;
+    }
+    .dataframe-container {
+        margin: 1rem 0;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-        # Barra de progreso
-        if task['Avance'] > 0:
-            progress_duration = (fin - inicio) * task['Avance'] / 100
-            fig.add_trace(go.Bar(
-                x=[progress_duration],
-                y=[task['Tarea']],
-                orientation='h',
-                base=inicio,
-                marker_color='green',
-                opacity=0.5,
-                name=f"{task['Tarea']} (Progreso)"
-            ))
-
-        # Marcadores para fechas reales
-        if pd.notnull(task['Inicio Real']):
-            fig.add_trace(go.Scatter(
-                x=[pd.to_datetime(task['Inicio Real'])],
-                y=[task['Tarea']],
-                mode='markers',
-                marker=dict(symbol='triangle-up', size=10, color='blue'),
-                name=f"{task['Tarea']} (Inicio Real)"
-            ))
-        if pd.notnull(task['Fin Real']):
-            fig.add_trace(go.Scatter(
-                x=[pd.to_datetime(task['Fin Real'])],
-                y=[task['Tarea']],
-                mode='markers',
-                marker=dict(symbol='triangle-down', size=10, color='red'),
-                name=f"{task['Tarea']} (Fin Real)"
-            ))
-
-    # Líneas verticales para fechas clave usando add_shape
-    shapes = [
-        dict(type="line", x0=fecha_pedido, x1=fecha_pedido, y0=0, y1=1, yref="paper",
-             line=dict(color="purple", width=2, dash="dash")),
-        dict(type="line", x0=fecha_entrega, x1=fecha_entrega, y0=0, y1=1, yref="paper",
-             line=dict(color="orange", width=2, dash="dash")),
-        dict(type="line", x0=fecha_actual, x1=fecha_actual, y0=0, y1=1, yref="paper",
-             line=dict(color="green", width=2))
-    ]
-
-    annotations = [
-        dict(x=fecha_pedido, y=1.05, yref="paper", text="Fecha de Pedido", showarrow=False),
-        dict(x=fecha_entrega, y=1.05, yref="paper", text="Fecha de Entrega Programada", showarrow=False),
-        dict(x=fecha_actual, y=1.05, yref="paper", text="Fecha Actual", showarrow=False)
-    ]
-
-    fig.update_layout(
-        title="Gráfico de Gantt del Pedido",
-        xaxis_title="Fecha",
-        yaxis_title="Tarea",
-        height=400,
-        width=800,
-        showlegend=False,
-        shapes=shapes,
-        annotations=annotations,
-        xaxis=dict(
-            type='date',
-            range=[fecha_pedido, fecha_entrega],
-            tickformat='%Y-%m-%d',
-            dtick='D7',  # Mostrar etiquetas cada 7 días
+@st.cache_resource
+def get_db_connection():
+    """Crear conexión a la base de datos con manejo de errores."""
+    try:
+        conn = pyodbc.connect(
+            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+            f"SERVER={st.secrets['server']};"
+            f"DATABASE={st.secrets['database']};"
+            f"UID={st.secrets['username']};"
+            f"PWD={st.secrets['password']};"
+            f"TrustServerCertificate=yes;"
         )
-    )
+        return conn
+    except Exception as e:
+        st.error(f"Error conectando a la base de datos: {e}")
+        logger.error(f"Database connection error: {e}")
+        return None
 
-    return fig
+def execute_query(query: str, params: Optional[tuple] = None) -> pd.DataFrame:
+    """Ejecutar consulta SQL con manejo de errores."""
+    conn = get_db_connection()
+    if conn is None:
+        return pd.DataFrame()
+    
+    try:
+        df = pd.read_sql(query, conn, params=params)
+        return df
+    except Exception as e:
+        st.error(f"Error ejecutando consulta: {e}")
+        logger.error(f"Query execution error: {e}")
+        return pd.DataFrame()
+    finally:
+        conn.close()
 
-# Aplicación Streamlit
+def get_base_query_parts():
+    """Obtener partes comunes de las consultas."""
+    base_select = """
+        a.CoddocOrdenProduccion AS PARTIDA,
+        DATEDIFF(DAY, a.dtFechaEmision, GETDATE()) AS DIAS,
+        LEFT(f.NommaeItemInventario, 35) AS TELA,
+        FORMAT(a.dtFechaEmision, 'dd-MM') AS F_EMISION,
+        a.dCantidad AS KG,
+        a.nvDocumentoReferencia AS REF,
+        g.NommaeColor AS COLOR,
+        LEFT(h.NommaeAnexoCliente, 15) AS Cliente,
+        a.ntEstado AS ESTADO
+    """
+    
+    base_joins = """
+        FROM docOrdenProduccion a WITH (NOLOCK)
+        INNER JOIN maeItemInventario f WITH (NOLOCK) ON f.IdmaeItem_Inventario = a.IdmaeItem
+        INNER JOIN maeColor g WITH (NOLOCK) ON g.IdmaeColor = a.IdmaeColor
+        INNER JOIN maeAnexoCliente h WITH (NOLOCK) ON h.IdmaeAnexo_Cliente = a.IdmaeAnexo_Cliente
+        INNER JOIN maeruta k ON a.IdmaeRuta = k.IdmaeRuta
+    """
+    
+    base_conditions = f"""
+        WHERE a.IdtdDocumentoForm = 138
+        AND a.dtFechaEmision > '{MIN_DATE}'
+        AND a.IdmaeAnexo_Cliente IN {CLIENT_IDS}
+    """
+    
+    return base_select, base_joins, base_conditions
+
+@st.cache_data(ttl=300)  # Cache por 5 minutos
+def get_partidas_sin_tenido(dias: int) -> pd.DataFrame:
+    """Obtener partidas sin teñir."""
+    base_select, base_joins, base_conditions = get_base_query_parts()
+    
+    query = f"""
+        SELECT {base_select},
+               CASE WHEN LOWER(k.NommaeRuta) LIKE '%mofijado%' THEN 1 ELSE 0 END AS FLAG
+        {base_joins}
+        LEFT JOIN docRecetaOrdenProduccion i ON a.IdDocumento_OrdenProduccion = i.IdDocumento_OrdenProduccion
+        LEFT JOIN docReceta j ON i.IdDocumento_Receta = j.IdDocumento_Receta
+        {base_conditions}
+        AND (j.dtFechaHoraFin IS NULL OR j.bAnulado = 1)
+        AND DATEDIFF(DAY, a.dtFechaEmision, GETDATE()) > ?
+    """
+    
+    df = execute_query(query, (dias,))
+    if not df.empty:
+        df['KG'] = df['KG'].round(1)
+    return df
+
+@st.cache_data(ttl=300)
+def get_partidas_con_tenido_sin_aprob(dias: int, include_estamp: bool = False) -> pd.DataFrame:
+    """Obtener partidas teñidas pero no aprobadas."""
+    base_select, base_joins, base_conditions = get_base_query_parts()
+    
+    estamp_condition = "LIKE '%estamp%'" if include_estamp else "NOT LIKE '%estamp%'"
+    excluded_orders_str = ','.join(map(str, EXCLUDED_ORDERS))
+    
+    query = f"""
+        SELECT {base_select},
+               DATEDIFF(DAY, MAX(j.dtFechaHoraFin), GETDATE()) AS DIAS_TEN,
+               FORMAT(MAX(j.dtFechaHoraFin), 'dd-MM') AS F_TENIDO
+        {base_joins}
+        INNER JOIN docRecetaOrdenProduccion i ON a.IdDocumento_OrdenProduccion = i.IdDocumento_OrdenProduccion
+        INNER JOIN docReceta j ON i.IdDocumento_Receta = j.IdDocumento_Receta
+        {base_conditions}
+        AND a.IdDocumento_OrdenProduccion NOT IN ({excluded_orders_str})
+        AND j.dtFechaHoraFin IS NOT NULL
+        AND j.bAnulado = 0
+        AND a.FechaCierreAprobado IS NULL
+        AND LOWER(k.NommaeRuta) {estamp_condition}
+        GROUP BY a.CoddocOrdenProduccion, a.dtFechaEmision, f.NommaeItemInventario,
+                 a.dCantidad, a.nvDocumentoReferencia, g.NommaeColor,
+                 h.NommaeAnexoCliente, a.ntEstado
+        HAVING DATEDIFF(DAY, MAX(j.dtFechaHoraFin), GETDATE()) > ?
+    """
+    
+    df = execute_query(query, (dias,))
+    if not df.empty:
+        df['KG'] = df['KG'].round(1)
+    return df
+
+def highlight_mofijado(row):
+    """Resaltar filas con FLAG = 1."""
+    if 'FLAG' in row and row['FLAG'] == 1:
+        return ['background-color: yellow' for _ in row]
+    return ['' for _ in row]
+
+def display_results(df: pd.DataFrame, title: str, highlight_flag: bool = False):
+    """Mostrar resultados con métricas y tabla."""
+    if df.empty:
+        st.warning(f"No se encontraron datos para: {title}")
+        return
+    
+    # Métricas
+    total_registros = len(df)
+    total_kg = df['KG'].sum()
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Total Registros", total_registros)
+    with col2:
+        st.metric("Total KG", f"{total_kg:.1f}")
+    
+    # Tabla
+    if highlight_flag and 'FLAG' in df.columns:
+        styled_df = df.style.apply(highlight_mofijado, axis=1).format({"KG": "{:.1f}"})
+        st.dataframe(styled_df, use_container_width=True)
+    else:
+        st.dataframe(df.style.format({"KG": "{:.1f}"}), use_container_width=True)
+
 def main():
-    st.title("Seguimiento de Pedido - Gráfico de Gantt")
-
-    df, fecha_pedido, fecha_entrega, fecha_actual = generar_datos_prueba()
-
-    st.write("Datos del Pedido:")
-    st.dataframe(df)
-
-    fig = crear_gantt(df, fecha_pedido, fecha_entrega, fecha_actual)
-    st.plotly_chart(fig)
-
-    st.write(f"Fecha de Pedido: {fecha_pedido}")
-    st.write(f"Fecha de Entrega Programada: {fecha_entrega}")
-    st.write(f"Fecha Actual: {fecha_actual}")
+    """Función principal de la aplicación."""
+    st.title("📊 Seguimiento de Partidas")
+    st.markdown("---")
+    
+    # Sidebar para configuración
+    with st.sidebar:
+        st.header("⚙️ Configuración")
+        
+        # Configuración para partidas sin teñir
+        st.subheader("Partidas sin TEÑIR")
+        dias_sin_tenido = st.number_input(
+            "Días sin teñir",
+            min_value=1,
+            value=8,
+            help="Días desde la emisión sin proceso de teñido"
+        )
+        
+        # Configuración para partidas teñidas
+        st.subheader("Partidas TEÑIDAS")
+        dias_con_tenido = st.number_input(
+            "Días desde teñido (sin estampado)",
+            min_value=1,
+            value=5,
+            help="Días desde el teñido para partidas sin estampado"
+        )
+        
+        dias_con_tenido_estamp = st.number_input(
+            "Días desde teñido (con estampado)",
+            min_value=1,
+            value=20,
+            help="Días desde el teñido para partidas con estampado"
+        )
+        
+        st.markdown("---")
+        auto_refresh = st.checkbox("Auto-actualizar", value=False)
+        if auto_refresh:
+            st.rerun()
+    
+    # Contenido principal
+    tab1, tab2, tab3 = st.tabs([
+        "🔴 Sin Teñir",
+        "🟡 Teñidas (Sin Estampado)",
+        "🟠 Teñidas (Con Estampado)"
+    ])
+    
+    with tab1:
+        st.header("Partidas sin TEÑIR")
+        if st.button("🔍 Consultar Partidas sin Teñir", key="btn_sin_tenido"):
+            with st.spinner("Consultando datos..."):
+                df_sin_tenido = get_partidas_sin_tenido(dias_sin_tenido)
+                display_results(df_sin_tenido, "Partidas sin teñir", highlight_flag=True)
+    
+    with tab2:
+        st.header("Partidas TEÑIDAS pero no APROBADAS (Sin Estampado)")
+        if st.button("🔍 Consultar Partidas Teñidas", key="btn_con_tenido"):
+            with st.spinner("Consultando datos..."):
+                df_con_tenido = get_partidas_con_tenido_sin_aprob(dias_con_tenido, include_estamp=False)
+                display_results(df_con_tenido, "Partidas teñidas sin aprobar")
+    
+    with tab3:
+        st.header("Partidas TEÑIDAS pero no APROBADAS (Con Estampado)")
+        if st.button("🔍 Consultar Partidas con Estampado", key="btn_con_estamp"):
+            with st.spinner("Consultando datos..."):
+                df_con_estamp = get_partidas_con_tenido_sin_aprob(dias_con_tenido_estamp, include_estamp=True)
+                display_results(df_con_estamp, "Partidas teñidas con estampado")
+    
+    # Footer
+    st.markdown("---")
+    st.markdown(
+        "<div style='text-align: center; color: #666;'>"
+        "💡 Tip: Utiliza el panel lateral para ajustar los parámetros de búsqueda"
+        "</div>",
+        unsafe_allow_html=True
+    )
 
 if __name__ == "__main__":
     main()
