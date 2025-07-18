@@ -44,7 +44,7 @@ FROM (
     WHERE a.bcesado = 0
       AND a.dtfechanacimiento IS NOT NULL
 ) sc
-WHERE sc.bdesactivado = 0  and sc.IdmaeCentroCosto in (109, 104, 111, 110,108)
+WHERE sc.bdesactivado = 0  --and sc.IdmaeCentroCosto in (109, 104, 111, 110,108)
   AND CAST(CONCAT(año, '-', RIGHT('00' + CAST(mes AS VARCHAR(2)), 2), '-', RIGHT('00' + CAST(dia AS VARCHAR(2)), 2)) AS DATE) BETWEEN '{start_date}' AND '{end_date}'
 ORDER BY CAST(CONCAT(año, '-', RIGHT('00' + CAST(mes AS VARCHAR(2)), 2), '-', RIGHT('00' + CAST(dia AS VARCHAR(2)), 2)) AS DATE);
 """
